@@ -16,25 +16,30 @@
   svg { display:block; position:absolute; left:0; top:0; transform-origin:0 0; }
   .node { cursor:pointer; transition: opacity .35s ease, filter .25s; }
   .node.search-dimmed { opacity: .04; pointer-events: none; }
-  .node.path-dimmed { opacity: .04; pointer-events: none; }
-  .node.filter-dimmed { opacity: .05; pointer-events: none; }
+  .node.path-dimmed { opacity: .06; pointer-events: none; }
   .node.search-match circle:first-child,
   .node.search-match polygon:first-child,
-  .node.search-match rect:first-child { opacity: .40 !important; }
+  .node.search-match rect:first-child { opacity: .45 !important; }
   .node.search-match text { fill: #fff !important; font-weight: 800 !important; font-size: 14px !important; }
   .node.path-active circle:first-child,
   .node.path-active polygon:first-child,
-  .node.path-active rect:first-child { opacity: .40 !important; }
+  .node.path-active rect:first-child { opacity: .50 !important; }
   .node.path-active text { fill: #fff !important; font-weight: 800 !important; font-size: 14px !important; }
   .node.path-active.path-descendant text { fill: #aabbff !important; }
+  .node.path-neighbor circle:first-child,
+  .node.path-neighbor polygon:first-child,
+  .node.path-neighbor rect:first-child { opacity: .30 !important; }
+  .node.path-neighbor text { fill: #dde5f0 !important; font-weight: 600 !important; }
   .node.filter-highlight circle:first-child,
   .node.filter-highlight polygon:first-child,
   .node.filter-highlight rect:first-child { opacity: .45 !important; }
   .node.filter-highlight text { font-weight: 800 !important; }
   .link-dimmed { opacity: .03 !important; }
-  .link-active { opacity: .7 !important; stroke-width: 2.5 !important; }
+  .link-active { opacity: .85 !important; stroke-width: 2.8 !important; }
+  .link-neighbor { opacity: .35 !important; stroke-width: 1.6 !important; }
   .link-related { opacity: .10 !important; stroke-dasharray: 4 4; }
-  .link-related.link-active { opacity: .55 !important; stroke-dasharray: 4 4; stroke-width: 2 !important; }
+  .link-related.link-active { opacity: .7 !important; stroke-dasharray: 4 4; stroke-width: 2.2 !important; }
+  .link-related.link-neighbor { opacity: .30 !important; stroke-dasharray: 4 4; }
   .link-filter-dimmed { opacity: .02 !important; }
   #tip {
     position:fixed; background:rgba(8,8,24,.96); border:1px solid #2a2a4a;
@@ -68,6 +73,7 @@
   #pathInfo .step.current { font-weight:700; }
   #pathInfo .step.current .year { color:#ffb700; }
   #pathInfo .rel-tag { color:#667; font-size:9px; margin-left:auto; padding:1px 6px; border:1px solid #334; border-radius:3px; letter-spacing:1px; }
+  #pathInfo .neighbor-hint { color:#667; font-size:10px; margin-top:8px; padding:6px 10px; background:rgba(255,255,255,.03); border-radius:6px; border-left:2px solid #445; }
   #legend { position:fixed; bottom:24px; left:24px; z-index:10; background:rgba(8,8,24,.88); backdrop-filter:blur(12px); padding:16px 20px; border-radius:12px; border:1px solid #1a1a2e; font-size:11px; box-shadow: 0 8px 32px rgba(0,0,0,.5); max-height:62vh; overflow-y:auto; width:260px; }
   #legend h3 { margin:12px 0 8px; font-size:10px; letter-spacing:3px; color:#667; font-weight:700; }
   #legend h3:first-child { margin-top:0; }
@@ -106,8 +112,8 @@
 <div id="bg"></div>
 <div id="wrap"><svg id="svg"></svg></div>
 <div id="hud">
-  <h1>ЯНДЕКС <span>·</span> ЗВЁЗДНАЯ КАРТА v9.0</h1>
-  <p>1997 → 2050 · РЕАЛЬНОСТЬ · ГОРИЗОНТ · SCI-FI</p>
+  <h1>ЯНДЕКС <span>·</span> yaMetaverse</h1>
+  <p>1997 → 2050 · РЕАЛЬНОСТЬ · ГОРИЗОНТ СОБЫТИЙ · SCI-FI</p>
 </div>
 <div id="stats"></div>
 <div id="search">
@@ -120,7 +126,7 @@
 <div id="pathInfo"></div>
 <div id="tip"></div>
 <div id="hint"><kbd>SCROLL</kbd> ZOOM · <kbd>DRAG</kbd> PAN · <kbd>CLICK</kbd> PATH · <kbd>FILTER</kbd> HIGHLIGHT</div>
-<div id="disclaimer">Слой «Технологический горизонт» и «SCI-FI» отделены от исторической карты. Прогнозы после 2030 — сценарии, не план компании. Источники в тултипах.</div>
+<div id="disclaimer">Слой «Горизонт событий» и «SCI-FI» отделены от исторической карты. Прогнозы после 2030 — сценарии, не план компании. Источники в тултипах.</div>
 <script>
 (function() {
   'use strict';
@@ -136,7 +142,7 @@
     dev:  {a:  180, c:'#ff6a00', l:'ОБЛАКО · DEV'},
     ai:   {a: -135, c:'#ff2a6d', l:'ИИ'},
     auto: {a: -160, c:'#00ddaa', l:'АВТОНОМНОСТЬ'},
-    horizon: {a: -100, c:'#aa88ff', l:'ТЕХНОЛОГИЧЕСКИЙ ГОРИЗОНТ'},
+    horizon: {a: -100, c:'#aa88ff', l:'ГОРИЗОНТ СОБЫТИЙ'},
     scifi: {a: -50, c:'#ff66cc', l:'SCI-FI · СТРЕСС-СЦЕНАРИИ'}
   };
 
@@ -159,19 +165,20 @@
     scienceFiction:   {c:'#ff66cc', l:'SCI-FI / СЦЕНАРИЙ'}
   };
 
-  /* Группы слоёв для блока «Слои карты» */
   const LAYERS = {
     reality:  {l:'РЕАЛЬНОСТЬ', statuses:['work','integ','sold','closed','tech','event','separated','pilot']},
     forecast: {l:'ПРОГНОЗ',    statuses:['forecast','scenario','speculation']},
-    horizon:  {l:'ГОРИЗОНТ',   statuses:['existingResearch','announcedTarget','industryScenario','speculativeHorizon']},
+    horizon:  {l:'ГОРИЗОНТ СОБЫТИЙ', statuses:['existingResearch','announcedTarget','industryScenario','speculativeHorizon']},
     scifi:    {l:'SCI-FI',     statuses:['scienceFiction']}
   };
 
   const FUTURE_STATUSES = ['forecast', 'scenario', 'speculation', 'pilot',
     'existingResearch', 'announcedTarget', 'industryScenario', 'speculativeHorizon', 'scienceFiction'];
 
-  /* ============ ОСНОВНАЯ КАРТА ПРОДУКТОВ ============ */
+  /* ============ ДАННЫЕ ============ */
+  /* Формат: [id, name, year, cat, status, importance, parent, extra, source] */
   const RAW = [
+    /* ===== ИСТОРИЯ ===== */
     ['search','Яндекс.Поиск',1997,'info','work',3,null,'Запущен на Softool 1997',null],
     ['mail','Почта',2000,'info','work',2,'search','Запущена в 2000',null],
     ['news','Новости',2000,'info','sold',2,'search','Переданы VK в 2022',null],
@@ -229,6 +236,7 @@
     ['zapr','Заправки',2017,'geo','work',1,'nav',null,null],
     ['widgets','Виджеты',2017,'info','closed',1,null,null,null],
     ['stroka','Строка',2017,'ai','integ',1,'alice',null,null],
+    ['driverless_test','Испытания беспилотных авто',2018,'auto','work',3,null,'Иннополис, Сколково; лицензии Израиль, Невада','Yandex History 2018'],
     ['plus','Яндекс Плюс',2018,'fin','work',3,null,'Мультисервисная подписка',null],
     ['station','Станция',2018,'ai','work',3,'alice',null,null],
     ['drive','Драйв',2018,'geo','work',2,'taxi',null,null],
@@ -240,7 +248,7 @@
     ['bringly','Bringly',2018,'comm','closed',1,null,null,null],
     ['strah','Страхование',2018,'fin','closed',1,null,null,null],
     ['lavka','Лавка',2019,'comm','work',2,null,null,null],
-    ['robot','Робот-доставщик',2019,'auto','work',2,null,'R1 → R5.0',null],
+    ['robot','Робот-доставщик',2019,'auto','work',3,null,'Яндекс.Ровер; массовое производство 2026; 20 000 к 2027','Sputnik 2026'],
     ['mini','Станция Мини',2019,'ai','work',1,'station',null,null],
     ['praktikum','Яндекс Практикум',2019,'b2b','work',2,null,'Образовательная платформа',null],
     ['start','Яндекс Старт',2019,'info','work',1,null,'Приложение',null],
@@ -254,7 +262,7 @@
     ['gpt','YandexGPT',2023,'ai','work',3,null,'Май 2023, первое поколение',null],
     ['gpt2','YandexGPT 2',2023,'ai','tech',1,'gpt','⚠️ Версия модели',null],
     ['shedevrum','Шедеврум',2023,'fun','work',2,null,'Генерация изображений',null],
-    ['robotaxi','Robotaxi',2023,'auto','work',2,null,null,null],
+    ['robotaxi','Robotaxi',2023,'auto','work',3,null,'Работает в Сириусе, Иннополисе; Москва — 2026','Hi-Tech Mail 2026'],
     ['q','Кью',2023,'info','closed',1,null,'Заморожен',null],
     ['tasks','Яндекс Задания',2023,'ai','work',2,null,'Российская краудсорсинговая платформа',null],
     ['gpt3','YandexGPT 3',2024,'ai','tech',2,'gpt2','⚠️ Требует уточнения',null],
@@ -273,21 +281,23 @@
     ['browserai','Браузер ИИ-агент',2025,'ai','work',2,'browser','Альфа-тест 27.08.2025',null],
     ['goai','Алиса AI в Go',2025,'geo','work',2,'go','Бета-тест 18.12.2025',null],
     ['rms','Яндекс Роботикс RMS',2025,'auto','work',2,null,'Система управления парком роботов',null],
+    ['humanoid','Гуманоидные роботы — софт',2025,'auto','pilot',2,null,'Разработка ОС для человекоподобных роботов','РБК 2025'],
     ['yauto','Яндекс Авто (ИИ)',2026,'geo','work',2,'auto','Представлена 24.04.2026 в Пекине',null],
     ['ysim','Яндекс Сим',2026,'fin','work',2,null,'MVNO на сети Билайна; 28.08.2026',null],
     ['orchestrator','Оркестратор ИИ',2026,'ai','tech',2,'aliceai','⚠️ Требует источника',null],
     ['agentplatform','Платформа ИИ-агентов',2026,'ai','work',2,'aliceai','⚠️ Требует источника',null],
     ['officeagent','Офисный ИИ-агент',2026,'b2b','pilot',2,'b2b','⚠️ Требует источника',null],
     ['autoru_sale','Auto.ru — продажа Т-Технологиям',2026,'comm','sold',2,'autoru','Сделка закрыта 2.06.2026; 35 млрд руб.',null],
+    ['robotaxi_msk','Роботакси в Москве — 200 авто',2026,'auto','forecast',3,'robotaxi','Корпоративный маршрут запущен; коммерция до конца 2026','Ecomhub 2026'],
+    ['trucks','Автономные грузовики — флот',2026,'auto','forecast',2,null,'+70 авто в 2026; тесты с ритейлерами','Ecomhub 2026'],
 
     ['trans_alice','Транзакционная Алиса',2026,'comm','forecast',3,'alice','Подразделение создано в марте 2026','Forbes'],
     ['ycp','Yandex Commerce Protocol',2026,'comm','forecast',3,'trans_alice','Объявлен 27.02.2026','pay.yandex.ru'],
-    ['robot_100','Роботакси 100 в Москве',2026,'auto','forecast',2,'robotaxi','План на конец 2026','IR Yandex Q1 2026'],
     ['alice_1m','Alice AI · 1 млн устройств',2026,'ai','forecast',2,'aliceai','Казахстан, по данным компании','Yandex KZ'],
     ['sona','Sona · рекомендации',2026,'fun','forecast',3,'music','+6,30% времени прослушивания','arXiv 2608.11015'],
     ['x5_robots','X5 · 100+ роботов',2026,'auto','forecast',2,'rms','Ускорение сборки в 2,5 раза','Yandex news 16.09.2025'],
 
-    ['robot_20k','Роботы-доставщики 20 000',2027,'auto','forecast',3,'robot','Публичная цель выпуска','Interfax'],
+    ['robot_20k','Роботы-доставщики 20 000',2027,'auto','forecast',3,'robot','Публичная цель выпуска','Sputnik 2026'],
     ['gpt6','YandexGPT 6 (ожидание)',2027,'ai','forecast',2,'gpt51','Цикл обновления ~1–1,5 года','Интерполяция'],
 
     ['robotaxi_1k','Роботакси 1000+',2030,'auto','forecast',2,'robotaxi','Ориентир руководства','ТАСС 2026'],
@@ -315,8 +325,10 @@
     ['quantum_ai','Квантовые ускорители ИИ',2040,'dev','scenario',1,'cloud','Гибридные системы','Отраслевой тренд']
   ];
 
-  /* ============ ГОРИЗОНТ И SCI-FI ============ */
+  /* ============ ГОРИЗОНТ СОБЫТИЙ ============ */
+  /* [id, name, year, cat, status, importance, relation, parent, extra, source, owner] */
   const HORIZON = [
+    /* --- Нейроморфное железо: реальные прототипы --- */
     ['altai1','AltAI-1 · нейроморфный SNN-процессор',2020,'horizon','existingResearch',2,'relatedTo',null,
       'Прототип: 16 ядер × 512 нейронов; импульсные нейросети',
       'Kaspersky neuro.kaspersky.com', 'Мотив НТ / Kaspersky'],
@@ -336,6 +348,7 @@
       'Нейроморфный прототип: в 20 раз быстрее мозга, энергоэффективность ×100',
       'Intel / Gartner', 'Intel'],
 
+    /* --- BCI --- */
     ['bci_medical','BCI для коммуникации и управления',2030,'horizon','industryScenario',2,'technologyScenario',null,
       'Помощь людям с двигательными и речевыми нарушениями; нужны клинические доказательства',
       'Nature Reviews Bioengineering', null],
@@ -346,6 +359,7 @@
       'Мысленная связь мозга с облаком — футурология, не R&D',
       'Kurzweil 2030-е в его сценарии', null],
 
+    /* --- Квантовые вычисления --- */
     ['quantum_fian','70-кубитный вычислитель ФИАН',2025,'horizon','existingResearch',2,'relatedTo',null,
       'Экспериментальный результат; не готов к промышленной оптимизации',
       'scientificrussia.ru', 'ФИАН'],
@@ -356,6 +370,7 @@
       'Пилоты для моделирования и оптимизации; преимущество нужно доказать на задаче',
       'arXiv 2402.17520', null],
 
+    /* --- Футурология --- */
     ['agi_2029','AGI по Курцвейлу',2029,'horizon','speculativeHorizon',2,'analogy',null,
       'Личный прогноз футуролога; не научный консенсус',
       'Kurzweil, интервью 2026', 'Ray Kurzweil'],
@@ -365,44 +380,13 @@
     ['longevity','Longevity escape velocity',2040,'horizon','speculativeHorizon',1,'analogy',null,
       'Концепция: прогресс медицины быстрее старения; не утверждённая цель',
       'diamandis.com', 'Peter Diamandis'],
+
+    /* --- Экзоскелеты (реальные) --- */
     ['exoskeleton','Экзоскелеты для промышленности',2030,'horizon','industryScenario',2,'relatedTo',null,
       'XoMotion, Ascentiz H+K; помогают поднимать тяжести без травм',
       'Daily Mail, CES', 'Различные производители'],
-    ['driverless_cars','Беспилотные автомобили',2030,'horizon','industryScenario',2,'relatedTo',null,
-      'Уже тестируются; главные барьеры — право и страховка',
-      'Minority Report (2002), реальные тесты', 'Waymo, Yandex, Tesla'],
-    ['smartwatches','Умные часы и носимые устройства',2015,'horizon','existingResearch',3,'relatedTo',null,
-      'Seiko TV Watch (1983) → Apple Watch, Samsung Galaxy Watch',
-      'Daily Mail, BGR', 'Apple, Samsung, Seiko'],
-    ['universal_translator','Универсальный переводчик',2011,'horizon','existingResearch',3,'relatedTo',null,
-      'Star Trek (1966) → Яндекс.Переводчик, Google Translate, LLM-перевод',
-      'Yahoo Tech, Star Trek', 'Яндекс, Google'],
-    ['padd','PADD · планшетный компьютер',2010,'horizon','existingResearch',3,'relatedTo',null,
-      'Star Trek: TNG (1987) → Apple iPad (2010)',
-      'Yahoo Tech', 'Apple'],
-    ['tricorder','Трикордер · портативный анализатор',2020,'horizon','existingResearch',2,'relatedTo',null,
-      'Star Trek (1966) → MyotonPRO, цифровые анализаторы',
-      'European Space Agency', 'Различные'],
-    ['touchscreens','Сенсорные экраны',2007,'horizon','existingResearch',3,'relatedTo',null,
-      'Star Trek (1966) → iPhone (2007), повсеместные тачскрины',
-      'Yahoo Tech', 'Apple'],
-    ['holograms','Голографические дисплеи',2040,'horizon','speculativeHorizon',2,'relatedTo',null,
-      'Minority Report (2002) → VR-гарнитуры, но без голограмм в воздухе',
-      'BGR, Minority Report', 'Meta, Apple'],
-    ['personalized_ads','Персонализированная реклама',2005,'horizon','existingResearch',3,'relatedTo',null,
-      'Minority Report (2002) → таргетированная реклама в интернете',
-      'BGR, Spielberg interview', 'Google, Яндекс'],
-    ['hoverboard','Ховерборд',2014,'horizon','existingResearch',1,'relatedTo',null,
-      'Back to the Future II (1989) → Hendo Hoverboard, Lexus Slide',
-      'BGR', 'Hendo, Lexus'],
-    ['self_lacing','Самошнурующиеся кроссовки',2016,'horizon','existingResearch',1,'relatedTo',null,
-      'Back to the Future II (1989) → Nike MAG, HyperAdapt 1.0',
-      'BGR', 'Nike'],
-    ['video_calls','Видеозвонки',2003,'horizon','existingResearch',3,'relatedTo',null,
-      'Star Trek (1966) → Skype (2003), Zoom (2013), FaceTime',
-      'Yahoo Tech', 'Skype, Zoom, Apple'],
 
-    /* SCI-FI */
+    /* --- SCI-FI: стресс-сценарии --- */
     ['sci_fi_rivermind','Зависимость от критической подписки',2040,'scifi','scienceFiction',3,'riskScenario',null,
       'Стресс-сценарий Black Mirror S7E1 «Common People»: тарифы и отключение критически важной функции',
       'Black Mirror S7E1', 'Netflix / сатира'],
@@ -427,18 +411,6 @@
     ['sci_fi_archangel','Восстановление умерших',2040,'scifi','scienceFiction',2,'riskScenario',null,
       'Стресс-сценарий «Arkangel» S4E2: контроль через нейроимплант и утрата приватности',
       'Black Mirror S4E2', 'Netflix / сатира'],
-    ['sci_fi_star_trek','Коммуникаторы и универсальные переводчики',2011,'scifi','existingResearch',3,'relatedTo',null,
-      'Star Trek (1966) → мобильные телефоны, ИИ-переводчики',
-      'Yahoo Tech', 'Gene Roddenberry / реальность'],
-    ['sci_fi_minority','Беспилотные такси и персонализация',2010,'scifi','existingResearch',3,'relatedTo',null,
-      'Minority Report (2002) → беспилотные авто, таргетированная реклама',
-      'BGR', 'Steven Spielberg / реальность'],
-    ['sci_fi_back_future','Самошнурующиеся кроссовки',2016,'scifi','existingResearch',1,'relatedTo',null,
-      'Back to the Future II (1989) → Nike MAG, HyperAdapt 1.0',
-      'BGR', 'Robert Zemeckis / реальность'],
-    ['sci_fi_aliens','Экзоскелеты и автономные турели',2020,'scifi','existingResearch',2,'relatedTo',null,
-      'Aliens (1986) → экзоскелеты XoMotion, автономные турели Buria',
-      'Daily Mail', 'James Cameron / реальность'],
     ['sci_fi_1984','Большой брат и слежка',2025,'scifi','scienceFiction',2,'riskScenario',null,
       'Стресс-сценарий: тотальная слежка через экосистему сервисов',
       '1984 / Orwell', 'Джордж Оруэлл'],
@@ -480,7 +452,11 @@
     ['aliceai','sci_fi_her','Стресс-сценарий'],
     ['alice','sci_fi_her','Прототип ИИ-компаньона'],
     ['cloud','sci_fi_rivermind','Зависимость от облака'],
-    ['plus','sci_fi_rivermind','Подписка как критическая функция']
+    ['plus','sci_fi_rivermind','Подписка как критическая функция'],
+    ['driverless_test','robotaxi','Эволюция беспилотников'],
+    ['robotaxi_msk','robotaxi','Москва'],
+    ['trucks','rms','Автономные грузовики'],
+    ['humanoid','robot','Гуманоиды']
   ];
 
   /* ============ ГЕОМЕТРИЯ ============ */
@@ -555,6 +531,21 @@
     if (n && n.parent && nodes[n.parent]) {
       (childrenOf[n.parent] = childrenOf[n.parent] || []).push(id);
     }
+  });
+
+  /* Карта соседей */
+  const neighborsOf = {};
+  ALL_NODES.forEach(id => {
+    const nd = nodes[id];
+    if (!nd) return;
+    const set = new Set();
+    if (nd.parent && nodes[nd.parent]) set.add(nd.parent);
+    (childrenOf[id] || []).forEach(c => set.add(c));
+    RELATED.forEach(([a, b]) => {
+      if (a === id && nodes[b]) set.add(b);
+      if (b === id && nodes[a]) set.add(a);
+    });
+    neighborsOf[id] = set;
   });
 
   /* ============ SVG ============ */
@@ -846,7 +837,7 @@
     applyTransform();
   }, {passive:false});
 
-  /* ============ ФИЛЬТРАЦИЯ ПО СТАТУСАМ (подсветка) ============ */
+  /* ============ ФИЛЬТРАЦИЯ ============ */
   const activeStatuses = new Set();
   const activeCats = new Set();
 
@@ -857,9 +848,8 @@
     nodeEls.forEach(n => {
       const status = n.dataset.status;
       const cat = n.dataset.cat;
-
-      let statusMatch = !hasStatusFilter || activeStatuses.has(status);
-      let catMatch = !hasCatFilter || activeCats.has(cat);
+      const statusMatch = !hasStatusFilter || activeStatuses.has(status);
+      const catMatch = !hasCatFilter || activeCats.has(cat);
       const match = statusMatch && catMatch;
 
       if (hasStatusFilter || hasCatFilter) {
@@ -917,10 +907,10 @@
 
   function clearAll() {
     nodeEls.forEach(n => {
-      n.classList.remove('search-dimmed','search-match','path-dimmed','path-active','path-descendant');
+      n.classList.remove('search-dimmed','search-match','path-dimmed','path-active','path-descendant','path-neighbor');
     });
-    linkEls.forEach(l => l.classList.remove('link-dimmed','link-active'));
-    relatedEls.forEach(l => l.classList.remove('link-dimmed','link-active'));
+    linkEls.forEach(l => l.classList.remove('link-dimmed','link-active','link-neighbor'));
+    relatedEls.forEach(l => l.classList.remove('link-dimmed','link-active','link-neighbor'));
     pathInfo.style.display = 'none';
     selectedId = null;
     document.getElementById('searchInput').value = '';
@@ -933,32 +923,64 @@
     const ancestors = getAncestors(id);
     const descendants = getDescendants(id);
     const descSet = new Set(descendants);
-    const allSet = new Set(ancestors.concat(descendants));
+    const pathSet = new Set(ancestors.concat(descendants));
+
+    const neighborSet = new Set();
+    pathSet.forEach(pid => {
+      (neighborsOf[pid] || new Set()).forEach(nid => {
+        if (!pathSet.has(nid)) neighborSet.add(nid);
+      });
+    });
 
     nodeEls.forEach(n => {
       const nid = n.dataset.id;
       n.classList.remove('search-dimmed','search-match');
-      if (allSet.has(nid)) {
-        n.classList.remove('path-dimmed');
+      if (pathSet.has(nid)) {
+        n.classList.remove('path-dimmed','path-neighbor');
         n.classList.add('path-active');
         if (descSet.has(nid)) n.classList.add('path-descendant');
         else n.classList.remove('path-descendant');
+      } else if (neighborSet.has(nid)) {
+        n.classList.remove('path-dimmed','path-active','path-descendant');
+        n.classList.add('path-neighbor');
       } else {
         n.classList.add('path-dimmed');
-        n.classList.remove('path-active','path-descendant');
+        n.classList.remove('path-active','path-descendant','path-neighbor');
       }
     });
 
     linkEls.forEach(l => {
-      const active = allSet.has(l.dataset.from) && allSet.has(l.dataset.to);
-      l.classList.toggle('link-active', active);
-      l.classList.toggle('link-dimmed', !active);
+      const from = l.dataset.from, to = l.dataset.to;
+      if (pathSet.has(from) && pathSet.has(to)) {
+        l.classList.add('link-active');
+        l.classList.remove('link-dimmed','link-neighbor');
+      } else if ((pathSet.has(from) && neighborSet.has(to)) ||
+                 (neighborSet.has(from) && pathSet.has(to))) {
+        l.classList.add('link-neighbor');
+        l.classList.remove('link-dimmed','link-active');
+      } else {
+        l.classList.add('link-dimmed');
+        l.classList.remove('link-active','link-neighbor');
+      }
     });
 
     relatedEls.forEach(l => {
-      const active = allSet.has(l.dataset.from) || allSet.has(l.dataset.to);
-      l.classList.toggle('link-active', active);
-      l.classList.toggle('link-dimmed', !active);
+      const from = l.dataset.from, to = l.dataset.to;
+      const fromIn = pathSet.has(from) || neighborSet.has(from);
+      const toIn = pathSet.has(to) || neighborSet.has(to);
+      if (fromIn && toIn) {
+        const bothPath = pathSet.has(from) && pathSet.has(to);
+        if (bothPath) {
+          l.classList.add('link-active');
+          l.classList.remove('link-dimmed','link-neighbor');
+        } else {
+          l.classList.add('link-neighbor');
+          l.classList.remove('link-dimmed','link-active');
+        }
+      } else {
+        l.classList.add('link-dimmed');
+        l.classList.remove('link-active','link-neighbor');
+      }
     });
 
     const currentNode = nodes[id];
@@ -1004,7 +1026,7 @@
     }
 
     if (futureDesc.length > 0) {
-      html += `<h4>ГОРИЗОНТ · ${futureDesc.length}</h4>`;
+      html += `<h4>ГОРИЗОНТ СОБЫТИЙ · ${futureDesc.length}</h4>`;
       futureDesc.slice().sort((a, b) => nodes[a].year - nodes[b].year).forEach(pid => {
         const nd = nodes[pid];
         if (!nd) return;
@@ -1035,6 +1057,10 @@
         const c = CATS[nd.cat];
         html += `<div class="step"><span class="dot" style="background:${s.c};box-shadow:0 0 8px ${s.c}"></span><span class="year">${nd.year}</span><span style="color:${c.c}">${escapeHtml(nd.name)}</span><span class="rel-tag">${escapeHtml(label)}</span></div>`;
       });
+    }
+
+    if (neighborSet.size > 0) {
+      html += `<div class="neighbor-hint">На карте также подсвечены ${neighborSet.size} связанных узлов — они образуют контекст вокруг выбранного пути.</div>`;
     }
 
     pathInfo.innerHTML = html;
@@ -1071,10 +1097,10 @@
     const q = query.trim().toLowerCase();
     if (!q) {
       nodeEls.forEach(n => {
-        n.classList.remove('search-dimmed','search-match','path-dimmed','path-active','path-descendant');
+        n.classList.remove('search-dimmed','search-match','path-dimmed','path-active','path-descendant','path-neighbor');
       });
-      linkEls.forEach(l => l.classList.remove('link-dimmed','link-active'));
-      relatedEls.forEach(l => l.classList.remove('link-dimmed','link-active'));
+      linkEls.forEach(l => l.classList.remove('link-dimmed','link-active','link-neighbor'));
+      relatedEls.forEach(l => l.classList.remove('link-dimmed','link-active','link-neighbor'));
       pathInfo.style.display = 'none';
       selectedId = null;
       return;
@@ -1089,10 +1115,10 @@
                     String(nd.year).indexOf(q) !== -1;
       n.classList.toggle('search-dimmed', !match);
       n.classList.toggle('search-match', match);
-      n.classList.remove('path-dimmed','path-active','path-descendant');
+      n.classList.remove('path-dimmed','path-active','path-descendant','path-neighbor');
     });
-    linkEls.forEach(l => l.classList.remove('link-active','link-dimmed'));
-    relatedEls.forEach(l => l.classList.remove('link-active','link-dimmed'));
+    linkEls.forEach(l => l.classList.remove('link-active','link-dimmed','link-neighbor'));
+    relatedEls.forEach(l => l.classList.remove('link-active','link-dimmed','link-neighbor'));
     pathInfo.style.display = 'none';
     selectedId = null;
   }
@@ -1166,7 +1192,7 @@
 
   gNodes.addEventListener('mouseout', () => { tip.style.display = 'none'; });
 
-  /* ============ ЛЕГЕНДА-ФИЛЬТР ПО СТАТУСАМ ============ */
+  /* ============ ЛЕГЕНДА ============ */
   const legend = document.getElementById('legend');
 
   function countByStatus() {
@@ -1286,11 +1312,10 @@
     }
   }
 
-  /* ============ СТАТИСТИКА СВЕРХУ ============ */
+  /* ============ СТАТИСТИКА ============ */
   const stats = document.getElementById('stats');
 
   function updateStats() {
-    const statusCounts = countByStatus();
     const total = ALL_NODES.length;
     let visible = 0;
     ALL_NODES.forEach(id => {
@@ -1301,10 +1326,9 @@
       if (statusMatch && catMatch) visible++;
     });
 
-    const statusFilterActive = activeStatuses.size > 0;
-    const catFilterActive = activeCats.size > 0;
+    const filterActive = activeStatuses.size > 0 || activeCats.size > 0;
 
-    let html = `<div class="stat${statusFilterActive || catFilterActive ? ' active-stat' : ''}"><span>ПОКАЗАНО:</span><b>${visible}</b></div>`;
+    let html = `<div class="stat${filterActive ? ' active-stat' : ''}"><span>ПОКАЗАНО:</span><b>${visible}</b></div>`;
     html += `<div class="stat"><span>ВСЕГО:</span><b>${total}</b></div>`;
 
     if (activeStatuses.size > 0) {
@@ -1330,7 +1354,7 @@
   renderCatFilters();
   updateStats();
 
-  console.log('Яндекс Звёздная карта v9.0 загружена.');
+  console.log('yaMetaverse загружена.');
   console.log('Продуктов:', RAW.length);
   console.log('Горизонт + SCI-FI:', HORIZON.length);
   console.log('Всего узлов:', ALL_NODES.length);
