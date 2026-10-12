@@ -74,6 +74,8 @@
   #pathInfo .step.current .year { color:#ffb700; }
   #pathInfo .rel-tag { color:#667; font-size:9px; margin-left:auto; padding:1px 6px; border:1px solid #334; border-radius:3px; letter-spacing:1px; }
   #pathInfo .neighbor-hint { color:#667; font-size:10px; margin-top:8px; padding:6px 10px; background:rgba(255,255,255,.03); border-radius:6px; border-left:2px solid #445; }
+  #pathInfo .teleport-btn { display:block; width:100%; margin-top:14px; padding:12px 16px; background:linear-gradient(135deg, #ffb700 0%, #ff2a6d 100%); border:none; border-radius:10px; color:#fff; font-size:13px; font-weight:800; letter-spacing:2px; cursor:pointer; transition: transform .2s, box-shadow .2s; box-shadow: 0 4px 20px rgba(255,183,0,.35); }
+  #pathInfo .teleport-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(255,183,0,.55); }
   #legend { position:fixed; bottom:24px; left:24px; z-index:10; background:rgba(8,8,24,.88); backdrop-filter:blur(12px); padding:16px 20px; border-radius:12px; border:1px solid #1a1a2e; font-size:11px; box-shadow: 0 8px 32px rgba(0,0,0,.5); max-height:62vh; overflow-y:auto; width:260px; }
   #legend h3 { margin:12px 0 8px; font-size:10px; letter-spacing:3px; color:#667; font-weight:700; }
   #legend h3:first-child { margin-top:0; }
@@ -106,6 +108,170 @@
   #hint { position:fixed; bottom:24px; right:24px; z-index:10; font-size:10px; color:#334; letter-spacing:2px; font-weight:600; }
   #hint kbd { background:#111; border:1px solid #222; padding:2px 6px; border-radius:4px; color:#667; font-family:inherit; }
   #disclaimer { position:fixed; bottom:6px; left:50%; transform:translateX(-50%); z-index:10; font-size:9px; color:#445; letter-spacing:1px; text-align:center; max-width:700px; opacity:.7; pointer-events:none; line-height:1.4; }
+
+  /* ==================== МИР ПЛАНЕТЫ ==================== */
+  #planetView {
+    position:fixed; inset:0; z-index:200; display:none;
+    overflow:hidden;
+  }
+  #planetView.active { display:block; }
+  #planetCanvas { position:absolute; inset:0; width:100%; height:100%; display:block; cursor:grab; }
+  #planetCanvas.dragging { cursor:grabbing; }
+
+  #planetTopbar {
+    position:absolute; top:0; left:0; right:0; z-index:10;
+    padding:20px 28px;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    background:linear-gradient(to bottom, rgba(0,0,0,.55) 0%, transparent 100%);
+    pointer-events:none;
+  }
+  #planetTopbar .left, #planetTopbar .right { pointer-events:auto; }
+  #planetTitle { margin:0; font-size:32px; font-weight:900; letter-spacing:6px; text-shadow: 0 0 30px currentColor; }
+  #planetSubtitle { margin:6px 0 0; font-size:11px; letter-spacing:4px; opacity:.7; }
+  #planetMeta { text-align:right; font-size:11px; line-height:1.8; opacity:.85; }
+  #planetMeta .badge { display:inline-block; padding:3px 10px; border:1px solid currentColor; border-radius:5px; letter-spacing:2px; font-size:9px; font-weight:700; }
+
+  #backBtn {
+    display:inline-flex; align-items:center; gap:10px;
+    padding:10px 18px; margin-bottom:12px;
+    background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.15);
+    border-radius:10px; color:#fff; font-size:12px; font-weight:700;
+    letter-spacing:2px; cursor:pointer; backdrop-filter:blur(12px);
+    transition: all .2s;
+  }
+  #backBtn:hover { background:rgba(255,255,255,.12); border-color:currentColor; }
+
+  #chronicle {
+    position:absolute; top:140px; left:28px; bottom:140px; width:340px;
+    background:rgba(8,8,24,.82); backdrop-filter:blur(16px);
+    border:1px solid rgba(255,255,255,.1); border-radius:14px;
+    padding:22px; overflow-y:auto; z-index:10;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  }
+  #chronicle::-webkit-scrollbar { width:6px; }
+  #chronicle::-webkit-scrollbar-thumb { background:rgba(255,255,255,.15); border-radius:3px; }
+  #chronicle h3 { margin:0 0 14px; font-size:10px; letter-spacing:4px; opacity:.55; font-weight:800; }
+  #chronicle h3:not(:first-child) { margin-top:22px; }
+  #chronicle .origin { font-size:13px; line-height:1.7; color:#dde5f0; }
+  #chronicle .team { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  #chronicle .team .member { padding:6px 10px; background:rgba(255,255,255,.06); border-radius:6px; font-size:11px; }
+  #chronicle .event { display:flex; gap:10px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.06); font-size:12px; }
+  #chronicle .event:last-child { border-bottom:none; }
+  #chronicle .event .y { color:#8899bb; font-family:monospace; font-size:10px; min-width:38px; flex-shrink:0; }
+  #chronicle .event .txt { color:#cdd5e0; line-height:1.5; }
+  #chronicle .event .txt b { color:#fff; }
+  #chronicle .law { padding:8px 0; font-size:12px; color:#cdd5e0; }
+  #chronicle .law .key { color:#8899bb; font-size:10px; letter-spacing:2px; font-weight:700; text-transform:uppercase; }
+  #chronicle .law .val { display:block; margin-top:3px; }
+
+  #influence {
+    position:absolute; top:140px; right:28px; bottom:140px; width:380px;
+    background:rgba(8,8,24,.82); backdrop-filter:blur(16px);
+    border:1px solid rgba(255,255,255,.1); border-radius:14px;
+    padding:22px; overflow-y:auto; z-index:10;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  }
+  #influence::-webkit-scrollbar { width:6px; }
+  #influence::-webkit-scrollbar-thumb { background:rgba(255,255,255,.15); border-radius:3px; }
+  #influence h3 { margin:0 0 14px; font-size:10px; letter-spacing:4px; opacity:.55; font-weight:800; }
+  #influence .actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
+  #influence .action {
+    padding:12px 14px; background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.12); border-radius:10px;
+    color:#fff; font-size:11px; font-weight:700; letter-spacing:2px;
+    cursor:pointer; transition: all .2s; text-align:center;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+  }
+  #influence .action:hover { background:rgba(255,255,255,.12); transform:translateY(-2px); border-color:currentColor; }
+  #influence .action .ic { font-size:18px; }
+  #influence textarea {
+    width:100%; min-height:100px; padding:12px 14px;
+    background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.12);
+    border-radius:10px; color:#fff; font-family:inherit; font-size:12px;
+    line-height:1.6; resize:vertical; outline:none; transition: border-color .2s;
+  }
+  #influence textarea:focus { border-color: currentColor; }
+  #influence textarea::placeholder { color:#556; }
+  #influence .send {
+    display:block; width:100%; margin-top:10px; padding:14px;
+    background:linear-gradient(135deg, #ffb700 0%, #ff2a6d 100%);
+    border:none; border-radius:10px; color:#fff; font-size:12px;
+    font-weight:800; letter-spacing:3px; cursor:pointer;
+    transition: transform .2s, box-shadow .2s;
+    box-shadow: 0 4px 20px rgba(255,183,0,.35);
+  }
+  #influence .send:hover { transform:translateY(-2px); box-shadow: 0 8px 28px rgba(255,183,0,.55); }
+  #influence .history { margin-top:18px; padding-top:14px; border-top:1px solid rgba(255,255,255,.08); }
+  #influence .history .h { display:flex; gap:8px; padding:8px 0; font-size:11px; color:#aab; border-bottom:1px solid rgba(255,255,255,.04); }
+  #influence .history .h:last-child { border-bottom:none; }
+  #influence .history .h .t { color:#667; font-family:monospace; font-size:9px; flex-shrink:0; }
+  #influence .history .h .a { flex:1; line-height:1.4; }
+  #influence .download {
+    display:block; width:100%; margin-top:14px; padding:10px;
+    background:transparent; border:1px solid rgba(255,255,255,.2);
+    border-radius:8px; color:#aab; font-size:10px; font-weight:700;
+    letter-spacing:2px; cursor:pointer; transition: all .2s;
+  }
+  #influence .download:hover { background:rgba(255,255,255,.06); color:#fff; }
+
+  #toast {
+    position:absolute; bottom:130px; left:50%; transform:translateX(-50%) translateY(30px);
+    padding:14px 24px; background:rgba(8,8,24,.95); backdrop-filter:blur(12px);
+    border:1px solid currentColor; border-radius:12px;
+    font-size:12px; font-weight:700; letter-spacing:2px;
+    opacity:0; transition: all .35s; pointer-events:none; z-index:20;
+    box-shadow: 0 12px 40px rgba(0,0,0,.6);
+  }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  #planetHint {
+    position:absolute; bottom:28px; left:50%; transform:translateX(-50%);
+    font-size:10px; color:#556; letter-spacing:3px;
+    text-align:center; z-index:10; pointer-events:none;
+  }
+  #planetHint kbd {
+    background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15);
+    padding:2px 6px; border-radius:4px; color:#aab; font-family:inherit;
+  }
+
+  /* HUD-панель навигации по миру */
+  #worldHud {
+    position:absolute; bottom:28px; left:50%; transform:translateX(-50%);
+    display:flex; gap:14px; align-items:center;
+    background:rgba(8,8,24,.85); backdrop-filter:blur(16px);
+    border:1px solid rgba(255,255,255,.12); border-radius:14px;
+    padding:10px 18px; z-index:15;
+    box-shadow: 0 12px 40px rgba(0,0,0,.6);
+  }
+  #worldHud .hud-group {
+    display:flex; align-items:center; gap:8px;
+    padding:0 12px; border-right:1px solid rgba(255,255,255,.1);
+  }
+  #worldHud .hud-group:last-child { border-right:none; }
+  #worldHud .hud-label { font-size:9px; color:#667; letter-spacing:2px; font-weight:700; }
+  #worldHud .hud-value { font-size:11px; color:#dde5f0; font-family:monospace; font-weight:700; }
+  #worldHud button {
+    padding:6px 12px; background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.12); border-radius:8px;
+    color:#dde5f0; font-size:10px; font-weight:700; letter-spacing:1px;
+    cursor:pointer; transition: all .2s; font-family:inherit;
+  }
+  #worldHud button:hover { background:rgba(255,255,255,.15); color:#fff; }
+  #worldHud .nav-btn {
+    width:32px; height:32px; padding:0; display:flex;
+    align-items:center; justify-content:center; font-size:14px;
+  }
+  #worldHud .nav-btn:disabled { opacity:.3; cursor:not-allowed; }
+
+  /* Индикатор сдвига мира */
+  #shiftIndicator {
+    position:absolute; top:180px; left:50%; transform:translateX(-50%);
+    font-size:10px; color:#8899bb; letter-spacing:3px;
+    background:rgba(8,8,24,.7); backdrop-filter:blur(12px);
+    padding:6px 14px; border-radius:8px; border:1px solid rgba(255,255,255,.1);
+    opacity:0; transition: opacity .3s; pointer-events:none; z-index:12;
+  }
+  #shiftIndicator.show { opacity:1; }
 </style>
 </head>
 <body>
@@ -127,6 +293,50 @@
 <div id="tip"></div>
 <div id="hint"><kbd>SCROLL</kbd> ZOOM · <kbd>DRAG</kbd> PAN · <kbd>CLICK</kbd> PATH · <kbd>FILTER</kbd> HIGHLIGHT</div>
 <div id="disclaimer">Слой «Горизонт событий» и «SCI-FI» отделены от исторической карты. Прогнозы после 2030 — сценарии, не план компании. Источники в тултипах.</div>
+
+<!-- ==================== МИР ПЛАНЕТЫ ==================== -->
+<div id="planetView">
+  <canvas id="planetCanvas"></canvas>
+
+  <div id="planetTopbar">
+    <div class="left">
+      <button id="backBtn">← ВЕРНУТЬСЯ В СОЗВЕЗДИЕ</button>
+      <h1 id="planetTitle">МИР</h1>
+      <p id="planetSubtitle">—</p>
+    </div>
+    <div class="right" id="planetMeta"></div>
+  </div>
+
+  <div id="shiftIndicator"></div>
+
+  <div id="chronicle"></div>
+  <div id="influence"></div>
+
+  <!-- HUD навигации по миру -->
+  <div id="worldHud">
+    <div class="hud-group">
+      <span class="hud-label">ГОРИЗОНТ</span>
+      <button class="nav-btn" id="orbitLeft" title="Сдвинуть влево">◀</button>
+      <span class="hud-value" id="panXValue">0</span>
+      <button class="nav-btn" id="orbitRight" title="Сдвинуть вправо">▶</button>
+    </div>
+    <div class="hud-group">
+      <span class="hud-label">ГЛУБИНА</span>
+      <button class="nav-btn" id="orbitUp" title="Вверх">▲</button>
+      <span class="hud-value" id="panYValue">0</span>
+      <button class="nav-btn" id="orbitDown" title="Вниз">▼</button>
+    </div>
+    <div class="hud-group">
+      <button id="resetView">СБРОС</button>
+      <button id="zoomIn">+</button>
+      <button id="zoomOut">−</button>
+    </div>
+  </div>
+
+  <div id="planetHint"><kbd>WASD</kbd> ПРОКРУТКА · <kbd>SCROLL</kbd> ЗУМ · <kbd>DRAG</kbd> СДВИГ · <kbd>ESC</kbd> ВЫЙТИ</div>
+  <div id="toast"></div>
+</div>
+
 <script>
 (function() {
   'use strict';
@@ -175,10 +385,78 @@
   const FUTURE_STATUSES = ['forecast', 'scenario', 'speculation', 'pilot',
     'existingResearch', 'announcedTarget', 'industryScenario', 'speculativeHorizon', 'scienceFiction'];
 
+  /* ============ ДНК ПЛАНЕТ ============ */
+  const WORLD_DNA = {
+    info: {
+      surface: 'crystal-plains', sky: 'aurora', star: 'blue-giant',
+      physics: 'Информация течёт как жидкость: знания накапливаются, но искажаются при передаче.',
+      resource: 'Точность', forbidden: 'Дезинформация',
+      success: 'Найти ответ раньше, чем его сформулировали', voice: 'спокойный, аналитический'
+    },
+    geo: {
+      surface: 'floating-islands', sky: 'cyan-sunset', star: 'twin-suns',
+      physics: 'Расстояния сжимаются: чем чаще маршрут — тем короче путь.',
+      resource: 'Время в пути', forbidden: 'Тупики',
+      success: 'Привести путника домой кратчайшим путём', voice: 'навигационный, точный'
+    },
+    comm: {
+      surface: 'bazaar-cities', sky: 'golden-haze', star: 'golden-star',
+      physics: 'Ценность рождается в обмене. Чем больше поток — тем выше плотность мира.',
+      resource: 'Доверие', forbidden: 'Обман в сделке',
+      success: 'Соединить продавца и покупателя за мгновение', voice: 'деловой, энергичный'
+    },
+    fun: {
+      surface: 'endless-carnival', sky: 'violet-dream', star: 'pulsar',
+      physics: 'Время ускоряется от внимания. Скука замедляет материю.',
+      resource: 'Внимание', forbidden: 'Равнодушие',
+      success: 'Подарить эмоцию, которую захочется пережить снова', voice: 'тёплый, игривый'
+    },
+    fin: {
+      surface: 'golden-fortress', sky: 'emerald-twilight', star: 'binary-star',
+      physics: 'Обещания материализуются. Долг имеет вес, доверие — плотность.',
+      resource: 'Доверие', forbidden: 'Невыполненное обязательство',
+      success: 'Сохранить ценность во времени', voice: 'строгий, надёжный'
+    },
+    b2b: {
+      surface: 'steel-metropolis', sky: 'grey-dawn', star: 'white-dwarf',
+      physics: 'Порядок рождает порядок. Хаос разрушает структуры.',
+      resource: 'Процесс', forbidden: 'Разрыв контракта',
+      success: 'Автоматизировать то, что вчера требовало человека', voice: 'формальный, деловой'
+    },
+    dev: {
+      surface: 'floating-platforms', sky: 'orange-plasma', star: 'forge-star',
+      physics: 'Мысль становится кодом. Код становится миром.',
+      resource: 'Инженерная ясность', forbidden: 'Технический долг',
+      success: 'Построить систему, которая переживёт своего создателя', voice: 'инженерный, точный'
+    },
+    ai: {
+      surface: 'neural-reefs', sky: 'magenta-storm', star: 'singularity',
+      physics: 'Обучение меняет саму материю. Каждая итерация — новая вселенная.',
+      resource: 'Данные', forbidden: 'Застой',
+      success: 'Породить то, чего не было в обучающей выборке', voice: 'внимательный, эволюционный'
+    },
+    auto: {
+      surface: 'steppe-highways', sky: 'teal-sunrise', star: 'morning-star',
+      physics: 'Движение первично. Стоящий объект исчезает.',
+      resource: 'Энергия движения', forbidden: 'Остановка',
+      success: 'Довести путника до цели без управления', voice: 'спокойный, надёжный'
+    },
+    horizon: {
+      surface: 'signal-ruins', sky: 'violet-void', star: 'dying-star',
+      physics: 'Идея существует, пока в неё верят хотя бы трое.',
+      resource: 'Вера', forbidden: 'Забвение',
+      success: 'Превратить гипотезу в факт', voice: 'тихий, пророческий'
+    },
+    scifi: {
+      surface: 'mirror-labyrinth', sky: 'blood-moon', star: 'eclipsed-sun',
+      physics: 'Мир — предупреждение. Здесь будущее уже случилось, и вы можете его избежать.',
+      resource: 'Осознание', forbidden: 'Повторение ошибки',
+      success: 'Выйти из лабиринта, не став его частью', voice: 'тревожный, ироничный'
+    }
+  };
+
   /* ============ ДАННЫЕ ============ */
-  /* Формат: [id, name, year, cat, status, importance, parent, extra, source] */
   const RAW = [
-    /* ===== ИСТОРИЯ ===== */
     ['search','Яндекс.Поиск',1997,'info','work',3,null,'Запущен на Softool 1997',null],
     ['mail','Почта',2000,'info','work',2,'search','Запущена в 2000',null],
     ['news','Новости',2000,'info','sold',2,'search','Переданы VK в 2022',null],
@@ -325,10 +603,7 @@
     ['quantum_ai','Квантовые ускорители ИИ',2040,'dev','scenario',1,'cloud','Гибридные системы','Отраслевой тренд']
   ];
 
-  /* ============ ГОРИЗОНТ СОБЫТИЙ ============ */
-  /* [id, name, year, cat, status, importance, relation, parent, extra, source, owner] */
   const HORIZON = [
-    /* --- Нейроморфное железо: реальные прототипы --- */
     ['altai1','AltAI-1 · нейроморфный SNN-процессор',2020,'horizon','existingResearch',2,'relatedTo',null,
       'Прототип: 16 ядер × 512 нейронов; импульсные нейросети',
       'Kaspersky neuro.kaspersky.com', 'Мотив НТ / Kaspersky'],
@@ -347,8 +622,6 @@
     ['hala_point','Hala Point · 1,15 млрд нейронов',2024,'horizon','existingResearch',1,'relatedTo',null,
       'Нейроморфный прототип: в 20 раз быстрее мозга, энергоэффективность ×100',
       'Intel / Gartner', 'Intel'],
-
-    /* --- BCI --- */
     ['bci_medical','BCI для коммуникации и управления',2030,'horizon','industryScenario',2,'technologyScenario',null,
       'Помощь людям с двигательными и речевыми нарушениями; нужны клинические доказательства',
       'Nature Reviews Bioengineering', null],
@@ -358,8 +631,6 @@
     ['neuro_cloud','Нейрокортикальный интернет',2045,'horizon','speculativeHorizon',1,'scenario','bci_consumer',
       'Мысленная связь мозга с облаком — футурология, не R&D',
       'Kurzweil 2030-е в его сценарии', null],
-
-    /* --- Квантовые вычисления --- */
     ['quantum_fian','70-кубитный вычислитель ФИАН',2025,'horizon','existingResearch',2,'relatedTo',null,
       'Экспериментальный результат; не готов к промышленной оптимизации',
       'scientificrussia.ru', 'ФИАН'],
@@ -369,8 +640,6 @@
     ['quantum_hybrid','Гибридные квантово-классические вычисления',2035,'horizon','industryScenario',2,'technologyScenario','quantum_rosatom',
       'Пилоты для моделирования и оптимизации; преимущество нужно доказать на задаче',
       'arXiv 2402.17520', null],
-
-    /* --- Футурология --- */
     ['agi_2029','AGI по Курцвейлу',2029,'horizon','speculativeHorizon',2,'analogy',null,
       'Личный прогноз футуролога; не научный консенсус',
       'Kurzweil, интервью 2026', 'Ray Kurzweil'],
@@ -380,13 +649,9 @@
     ['longevity','Longevity escape velocity',2040,'horizon','speculativeHorizon',1,'analogy',null,
       'Концепция: прогресс медицины быстрее старения; не утверждённая цель',
       'diamandis.com', 'Peter Diamandis'],
-
-    /* --- Экзоскелеты (реальные) --- */
     ['exoskeleton','Экзоскелеты для промышленности',2030,'horizon','industryScenario',2,'relatedTo',null,
       'XoMotion, Ascentiz H+K; помогают поднимать тяжести без травм',
       'Daily Mail, CES', 'Различные производители'],
-
-    /* --- SCI-FI: стресс-сценарии --- */
     ['sci_fi_rivermind','Зависимость от критической подписки',2040,'scifi','scienceFiction',3,'riskScenario',null,
       'Стресс-сценарий Black Mirror S7E1 «Common People»: тарифы и отключение критически важной функции',
       'Black Mirror S7E1', 'Netflix / сатира'],
@@ -425,7 +690,6 @@
       'Ex Machina', 'Алекс Гарленд']
   ];
 
-  /* ============ РОДСТВЕННЫЕ СВЯЗИ ============ */
   const RELATED = [
     ['toloka','crowd','Краудсорсинг'],
     ['toloka','tasks','Преемственность РФ'],
@@ -533,7 +797,6 @@
     }
   });
 
-  /* Карта соседей */
   const neighborsOf = {};
   ALL_NODES.forEach(id => {
     const nd = nodes[id];
@@ -1063,8 +1326,18 @@
       html += `<div class="neighbor-hint">На карте также подсвечены ${neighborSet.size} связанных узлов — они образуют контекст вокруг выбранного пути.</div>`;
     }
 
+    html += `<button class="teleport-btn" id="teleportBtn">◉ ТЕЛЕПОРТИРОВАТЬСЯ НА ПОВЕРХНОСТЬ</button>`;
+
     pathInfo.innerHTML = html;
     pathInfo.style.display = 'block';
+
+    const teleportBtn = document.getElementById('teleportBtn');
+    if (teleportBtn) {
+      teleportBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        enterPlanet(id);
+      });
+    }
   }
 
   function escapeHtml(str) {
@@ -1266,7 +1539,6 @@
     }
   }
 
-  /* ============ ФИЛЬТР ПО КАТЕГОРИЯМ ============ */
   const catFilters = document.getElementById('catFilters');
 
   function renderCatFilters() {
@@ -1312,7 +1584,6 @@
     }
   }
 
-  /* ============ СТАТИСТИКА ============ */
   const stats = document.getElementById('stats');
 
   function updateStats() {
@@ -1349,15 +1620,844 @@
     stats.innerHTML = html;
   }
 
+  /* ================================================================ */
+  /* ==================== МИР ПЛАНЕТЫ ============================== */
+  /* ================================================================ */
+
+  const planetView = document.getElementById('planetView');
+  const planetCanvas = document.getElementById('planetCanvas');
+  const planetTitle = document.getElementById('planetTitle');
+  const planetSubtitle = document.getElementById('planetSubtitle');
+  const planetMeta = document.getElementById('planetMeta');
+  const chronicle = document.getElementById('chronicle');
+  const influence = document.getElementById('influence');
+  const backBtn = document.getElementById('backBtn');
+  const toast = document.getElementById('toast');
+  const shiftIndicator = document.getElementById('shiftIndicator');
+  const panXValue = document.getElementById('panXValue');
+  const panYValue = document.getElementById('panYValue');
+
+  let currentPlanetId = null;
+  let canvasAnimId = null;
+
+  /* --- Состояние камеры мира --- */
+  const worldCamera = {
+    panX: 0,        /* -∞..+∞ — горизонтальный сдвиг по горизонту */
+    panY: 0,        /* -∞..+∞ — вертикальный сдвиг (глубина/высота) */
+    zoom: 1,        /* 0.5..3 */
+    targetPanX: 0,
+    targetPanY: 0,
+    targetZoom: 1
+  };
+
+  function hexToRgba(hex, a) {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.substring(0,2), 16);
+    const g = parseInt(h.substring(2,4), 16);
+    const b = parseInt(h.substring(4,6), 16);
+    return `rgba(${r},${g},${b},${a})`;
+  }
+
+  function shade(hex, percent) {
+    const h = hex.replace('#', '');
+    let r = parseInt(h.substring(0,2), 16);
+    let g = parseInt(h.substring(2,4), 16);
+    let b = parseInt(h.substring(4,6), 16);
+    r = Math.max(0, Math.min(255, r + Math.round(255 * percent / 100)));
+    g = Math.max(0, Math.min(255, g + Math.round(255 * percent / 100)));
+    b = Math.max(0, Math.min(255, b + Math.round(255 * percent / 100)));
+    return '#' + [r,g,b].map(x => x.toString(16).padStart(2,'0')).join('');
+  }
+
+  function getPlanetDNA(id) {
+    const nd = nodes[id];
+    if (!nd) return null;
+    const cat = CATS[nd.cat];
+    const st = ST[nd.status] || ST.work;
+    const base = WORLD_DNA[nd.cat] || WORLD_DNA.info;
+
+    const statusMood = {
+      work:     { energy: 1.0, decay: 0,   hope: 1.0 },
+      integ:    { energy: 0.8, decay: 0.2, hope: 0.8 },
+      sold:     { energy: 0.6, decay: 0.4, hope: 0.5 },
+      closed:   { energy: 0.3, decay: 0.8, hope: 0.3 },
+      tech:     { energy: 0.9, decay: 0.1, hope: 0.9 },
+      event:    { energy: 0.5, decay: 0.0, hope: 1.0 },
+      separated:{ energy: 0.7, decay: 0.3, hope: 0.7 },
+      pilot:    { energy: 0.85,decay: 0.1, hope: 0.9 },
+      forecast: { energy: 0.9, decay: 0.0, hope: 1.0 },
+      scenario: { energy: 0.7, decay: 0.1, hope: 0.8 },
+      speculation: { energy: 0.4, decay: 0.3, hope: 0.6 },
+      existingResearch: { energy: 0.7, decay: 0.1, hope: 0.8 },
+      announcedTarget: { energy: 0.75, decay: 0.05, hope: 0.9 },
+      industryScenario: { energy: 0.6, decay: 0.15, hope: 0.7 },
+      speculativeHorizon: { energy: 0.35, decay: 0.35, hope: 0.5 },
+      scienceFiction: { energy: 0.5, decay: 0.2, hope: 0.4 }
+    }[nd.status] || { energy: 1, decay: 0, hope: 1 };
+
+    return {
+      id: nd.id, name: nd.name, year: nd.year,
+      category: nd.cat, categoryName: cat.l,
+      status: nd.status, statusName: st.l,
+      statusColor: st.c, categoryColor: cat.c,
+      surface: base.surface, sky: base.sky, star: base.star,
+      physics: base.physics, resource: base.resource,
+      forbidden: base.forbidden, success: base.success, voice: base.voice,
+      extra: nd.extra, source: nd.source, owner: nd.owner,
+      parent: nd.parent, mood: statusMood, importance: nd.imp
+    };
+  }
+
+  /* --- Спутники — предки и потомки --- */
+  function buildSatellites(id) {
+    const nd = nodes[id];
+    if (!nd) return [];
+
+    const ancestors = getAncestors(id).slice(0, -1); /* без самого себя */
+    const descendants = getDescendants(id);
+    const relatedRaw = [];
+    RELATED.forEach(([a, b, label]) => {
+      if (a === id && nodes[b]) relatedRaw.push({ id: b, label });
+      if (b === id && nodes[a]) relatedRaw.push({ id: a, label });
+    });
+
+    const sats = [];
+
+    /* Предки — орбита слева сверху */
+    ancestors.forEach((aid, i) => {
+      const a = nodes[aid];
+      if (!a) return;
+      const ang = -Math.PI * 0.85 + i * 0.18;
+      sats.push({
+        id: aid,
+        name: a.name,
+        year: a.year,
+        cat: a.cat,
+        status: a.status,
+        color: CATS[a.cat]?.c || '#fff',
+        statusColor: ST[a.status]?.c || '#fff',
+        type: 'ancestor',
+        angle: ang,
+        radius: 0.42 + i * 0.06,
+        speed: 0.0003 + i * 0.0001,
+        size: 6 + a.imp * 2
+      });
+    });
+
+    /* Потомки — орбита справа снизу */
+    descendants.forEach((did, i) => {
+      const d = nodes[did];
+      if (!d) return;
+      const ang = Math.PI * 0.15 + i * 0.18;
+      sats.push({
+        id: did,
+        name: d.name,
+        year: d.year,
+        cat: d.cat,
+        status: d.status,
+        color: CATS[d.cat]?.c || '#fff',
+        statusColor: ST[d.status]?.c || '#fff',
+        type: 'descendant',
+        angle: ang,
+        radius: 0.48 + i * 0.06,
+        speed: -0.0004 - i * 0.0001,
+        size: 6 + d.imp * 2
+      });
+    });
+
+    /* Related — орбита по центру */
+    relatedRaw.forEach((r, i) => {
+      const a = nodes[r.id];
+      if (!a) return;
+      const ang = -Math.PI * 0.15 + i * 0.35;
+      sats.push({
+        id: r.id,
+        name: a.name,
+        year: a.year,
+        cat: a.cat,
+        status: a.status,
+        color: CATS[a.cat]?.c || '#fff',
+        statusColor: ST[a.status]?.c || '#fff',
+        type: 'related',
+        angle: ang,
+        radius: 0.35 + i * 0.05,
+        speed: 0.0005 + i * 0.0002,
+        size: 5 + a.imp * 2,
+        label: r.label
+      });
+    });
+
+    return sats;
+  }
+
+  function buildChronicle(dna) {
+    const ancestors = getAncestors(dna.id);
+    const descendants = getDescendants(dna.id);
+
+    let html = '';
+
+    html += `<h3>ПРОИСХОЖДЕНИЕ</h3>`;
+    html += `<div class="origin">`;
+    html += `<b style="color:${dna.categoryColor}">${escapeHtml(dna.name)}</b> — `;
+    html += `мир, рождённый в <b>${dna.year}</b> году в категории «${escapeHtml(dna.categoryName)}». `;
+    html += `Текущий статус: <b style="color:${dna.statusColor}">${escapeHtml(dna.statusName)}</b>.`;
+    if (dna.extra) html += `<br><br>${escapeHtml(dna.extra)}.`;
+    html += `</div>`;
+
+    if (dna.owner) {
+      html += `<h3>ИНИЦИАТОРЫ И КОМАНДА</h3>`;
+      html += `<div class="team">`;
+      dna.owner.split(/[,/]/).forEach(m => {
+        const t = m.trim();
+        if (t) html += `<span class="member">${escapeHtml(t)}</span>`;
+      });
+      html += `</div>`;
+    }
+
+    if (ancestors.length > 1) {
+      html += `<h3>ЛИНИЯ РАЗВИТИЯ</h3>`;
+      ancestors.forEach((pid) => {
+        const p = nodes[pid];
+        if (!p) return;
+        const isCurrent = pid === dna.id;
+        html += `<div class="event">
+          <span class="y">${p.year}</span>
+          <span class="txt">
+            ${isCurrent ? '<b style="color:' + dna.statusColor + '">' : ''}
+            ${escapeHtml(p.name)}
+            ${isCurrent ? '</b>' : ''}
+            ${p.extra ? '<br><span style="color:#889">' + escapeHtml(p.extra) + '</span>' : ''}
+          </span>
+        </div>`;
+      });
+    }
+
+    if (descendants.length > 0) {
+      html += `<h3>ПОТЕНЦИАЛ РАЗВИТИЯ</h3>`;
+      descendants.slice().sort((a,b) => nodes[a].year - nodes[b].year).forEach(pid => {
+        const p = nodes[pid];
+        if (!p) return;
+        const s = ST[p.status] || ST.work;
+        html += `<div class="event">
+          <span class="y">${p.year}</span>
+          <span class="txt">
+            ${escapeHtml(p.name)}
+            <br><span style="color:${s.c};font-size:10px">${s.l}</span>
+            ${p.extra ? '<br><span style="color:#889;font-size:11px">' + escapeHtml(p.extra) + '</span>' : ''}
+          </span>
+        </div>`;
+      });
+    }
+
+    html += `<h3>ФИЗИКА ЭТОГО МИРА</h3>`;
+    html += `<div class="law"><span class="key">Поверхность</span><span class="val">${escapeHtml(dna.surface)}</span></div>`;
+    html += `<div class="law"><span class="key">Небо</span><span class="val">${escapeHtml(dna.sky)}</span></div>`;
+    html += `<div class="law"><span class="key">Светило</span><span class="val">${escapeHtml(dna.star)}</span></div>`;
+    html += `<div class="law"><span class="key">Закон</span><span class="val">${escapeHtml(dna.physics)}</span></div>`;
+    html += `<div class="law"><span class="key">Ресурс</span><span class="val">${escapeHtml(dna.resource)}</span></div>`;
+    html += `<div class="law"><span class="key">Запрещено</span><span class="val">${escapeHtml(dna.forbidden)}</span></div>`;
+    html += `<div class="law"><span class="key">Успех</span><span class="val">${escapeHtml(dna.success)}</span></div>`;
+
+    chronicle.innerHTML = html;
+  }
+
+  function buildInfluence(dna) {
+    const saved = loadPlanetHistory(dna.id);
+
+    let html = '';
+    html += `<h3>ПОВЛИЯТЬ НА МИР</h3>`;
+    html += `<div class="actions">`;
+    html += `<button class="action" data-act="build"><span class="ic">⚒</span>Построить</button>`;
+    html += `<button class="action" data-act="improve"><span class="ic">✦</span>Улучшить</button>`;
+    html += `<button class="action" data-act="expand"><span class="ic">⤢</span>Расширить</button>`;
+    html += `<button class="action" data-act="connect"><span class="ic">⛓</span>Соединить</button>`;
+    html += `<button class="action" data-act="protect"><span class="ic">🛡</span>Защитить</button>`;
+    html += `<button class="action" data-act="explore"><span class="ic">⊙</span>Исследовать</button>`;
+    html += `</div>`;
+    html += `<textarea id="userThought" placeholder="Что бы вы изменили в этом мире? Опишите свою идею..."></textarea>`;
+    html += `<button class="send" id="sendIdea">ОТПРАВИТЬ В МИР</button>`;
+
+    if (saved.length > 0) {
+      html += `<div class="history"><h3 style="margin:0 0 8px">ИСТОРИЯ ВЛИЯНИЙ · ${saved.length}</h3>`;
+      saved.slice(-8).reverse().forEach(h => {
+        html += `<div class="h"><span class="t">${h.time}</span><span class="a">${escapeHtml(h.text)}</span></div>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `<button class="download" id="downloadIdea">⬇ СКАЧАТЬ ПРОЕКЦИЮ МИРА</button>`;
+
+    influence.innerHTML = html;
+
+    influence.querySelectorAll('.action').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const act = btn.dataset.act;
+        applyActionToPlanet(dna, act);
+      });
+    });
+
+    const sendBtn = document.getElementById('sendIdea');
+    const thoughtInput = document.getElementById('userThought');
+    if (sendBtn && thoughtInput) {
+      sendBtn.addEventListener('click', () => {
+        const text = thoughtInput.value.trim();
+        if (!text) {
+          showToast('Напишите идею, прежде чем отправлять', dna);
+          return;
+        }
+        applyActionToPlanet(dna, 'idea', text);
+        thoughtInput.value = '';
+      });
+    }
+
+    const dlBtn = document.getElementById('downloadIdea');
+    if (dlBtn) {
+      dlBtn.addEventListener('click', () => downloadProjection(dna));
+    }
+  }
+
+  function applyActionToPlanet(dna, action, customText) {
+    const actionLabels = {
+      build: 'Построить: новая структура в мире',
+      improve: 'Улучшить: эволюция существующего',
+      expand: 'Расширить: новые территории',
+      connect: 'Соединить: мост к соседнему миру',
+      protect: 'Защитить: укрепление границ',
+      explore: 'Исследовать: неизведанные области',
+      idea: 'Идея: ' + (customText || '')
+    };
+
+    const label = actionLabels[action] || action;
+
+    /* Визуальный отклик */
+    triggerWorldPulse(dna, action);
+
+    /* Сдвиг мира в сторону от действия — пользователь видит масштаб */
+    const shifts = {
+      build:   { x:  0.8, y: -0.5 },
+      improve: { x:  0.5, y: -0.8 },
+      expand:  { x:  1.2, y:  0.0 },
+      connect: { x: -0.8, y: -0.3 },
+      protect: { x:  0.0, y:  0.7 },
+      explore: { x: -1.0, y: -0.6 },
+      idea:    { x:  0.4, y: -0.4 }
+    };
+    const shift = shifts[action] || { x: 0.3, y: -0.3 };
+    worldCamera.targetPanX += shift.x;
+    worldCamera.targetPanY += shift.y;
+    updatePanIndicators();
+
+    /* Сохраняем */
+    const history = loadPlanetHistory(dna.id);
+    history.push({
+      time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+      action,
+      text: label
+    });
+    savePlanetHistory(dna.id, history);
+
+    buildInfluence(dna);
+    showToast('✓ ' + label, dna);
+  }
+
+  let worldPulse = 0;
+  let worldPulseColor = '#ffb700';
+  function triggerWorldPulse(dna, action) {
+    const colors = {
+      build: '#00ff88', improve: '#4ea1ff', expand: '#ffb700',
+      connect: '#c14eff', protect: '#aabbcc', explore: '#ff2a6d', idea: '#ffffff'
+    };
+    worldPulseColor = colors[action] || dna.categoryColor;
+    worldPulse = 1.0;
+  }
+
+  function loadPlanetHistory(id) {
+    try {
+      const raw = localStorage.getItem('yaMetaverse_planet_' + id);
+      return raw ? JSON.parse(raw) : [];
+    } catch(e) { return []; }
+  }
+  function savePlanetHistory(id, history) {
+    try {
+      localStorage.setItem('yaMetaverse_planet_' + id, JSON.stringify(history));
+    } catch(e) {}
+  }
+
+  function downloadProjection(dna) {
+    const history = loadPlanetHistory(dna.id);
+    const data = {
+      planet: {
+        id: dna.id, name: dna.name, year: dna.year,
+        category: dna.categoryName, status: dna.statusName,
+        physics: dna.physics, resource: dna.resource, success: dna.success
+      },
+      camera: {
+        panX: worldCamera.panX.toFixed(3),
+        panY: worldCamera.panY.toFixed(3),
+        zoom: worldCamera.zoom.toFixed(3)
+      },
+      influences: history,
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `yaMetaverse_${dna.id}_projection.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('⬇ Проекция мира скачана', dna);
+  }
+
+  let toastTimeout = null;
+  function showToast(text, dna) {
+    toast.textContent = text;
+    toast.style.color = dna ? dna.categoryColor : '#ffb700';
+    toast.classList.add('show');
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  function updatePanIndicators() {
+    panXValue.textContent = worldCamera.panX.toFixed(1);
+    panYValue.textContent = worldCamera.panY.toFixed(1);
+  }
+
+  function showShiftIndicator(text) {
+    shiftIndicator.textContent = text;
+    shiftIndicator.classList.add('show');
+    clearTimeout(showShiftIndicator._t);
+    showShiftIndicator._t = setTimeout(() => shiftIndicator.classList.remove('show'), 1200);
+  }
+
+  function enterPlanet(id) {
+    const dna = getPlanetDNA(id);
+    if (!dna) return;
+    currentPlanetId = id;
+
+    /* Сброс камеры мира */
+    worldCamera.panX = 0;
+    worldCamera.panY = 0;
+    worldCamera.zoom = 1;
+    worldCamera.targetPanX = 0;
+    worldCamera.targetPanY = 0;
+    worldCamera.targetZoom = 1;
+    updatePanIndicators();
+
+    planetView.classList.add('active');
+
+    planetTitle.textContent = dna.name;
+    planetTitle.style.color = dna.categoryColor;
+    planetSubtitle.textContent = `${dna.year} · ${dna.categoryName} · ${dna.statusName}`;
+
+    let metaHtml = `<div class="badge" style="color:${dna.statusColor}">${escapeHtml(dna.statusName)}</div><br>`;
+    metaHtml += `<span style="opacity:.7">Голос мира:</span> ${escapeHtml(dna.voice)}`;
+    if (dna.owner) metaHtml += `<br><span style="opacity:.7">Источник:</span> ${escapeHtml(dna.owner)}`;
+    planetMeta.innerHTML = metaHtml;
+
+    buildChronicle(dna);
+    buildInfluence(dna);
+
+    /* Спутники */
+    const sats = buildSatellites(id);
+
+    startPlanetAnimation(dna, sats);
+
+    document.getElementById('wrap').style.display = 'none';
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('search').style.display = 'none';
+    document.getElementById('legend').style.display = 'none';
+    document.getElementById('catFilters').style.display = 'none';
+    document.getElementById('pathInfo').style.display = 'none';
+    document.getElementById('stats').style.display = 'none';
+    document.getElementById('hint').style.display = 'none';
+    document.getElementById('disclaimer').style.display = 'none';
+  }
+
+  function exitPlanet() {
+    planetView.classList.remove('active');
+    if (canvasAnimId) { cancelAnimationFrame(canvasAnimId); canvasAnimId = null; }
+    currentPlanetId = null;
+
+    document.getElementById('wrap').style.display = '';
+    document.getElementById('hud').style.display = '';
+    document.getElementById('search').style.display = '';
+    document.getElementById('legend').style.display = '';
+    document.getElementById('catFilters').style.display = '';
+    document.getElementById('stats').style.display = '';
+    document.getElementById('hint').style.display = '';
+    document.getElementById('disclaimer').style.display = '';
+  }
+
+  backBtn.addEventListener('click', exitPlanet);
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && currentPlanetId) exitPlanet();
+    if (currentPlanetId) {
+      const step = 40;
+      if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'ф') { worldCamera.targetPanX -= 0.15; updatePanIndicators(); showShiftIndicator('← ' + worldCamera.panX.toFixed(1)); }
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'в') { worldCamera.targetPanX += 0.15; updatePanIndicators(); showShiftIndicator('→ ' + worldCamera.panX.toFixed(1)); }
+      if (e.key === 'ArrowUp'    || e.key === 'w' || e.key === 'ц') { worldCamera.targetPanY -= 0.15; updatePanIndicators(); showShiftIndicator('↑ ' + worldCamera.panY.toFixed(1)); }
+      if (e.key === 'ArrowDown'  || e.key === 's' || e.key === 'ы') { worldCamera.targetPanY += 0.15; updatePanIndicators(); showShiftIndicator('↓ ' + worldCamera.panY.toFixed(1)); }
+      if (e.key === '=' || e.key === '+') { worldCamera.targetZoom = Math.min(3, worldCamera.targetZoom * 1.15); showShiftIndicator('ZOOM ' + worldCamera.targetZoom.toFixed(2)); }
+      if (e.key === '-' || e.key === '_') { worldCamera.targetZoom = Math.max(0.5, worldCamera.targetZoom / 1.15); showShiftIndicator('ZOOM ' + worldCamera.targetZoom.toFixed(2)); }
+    }
+  });
+
+  /* Кнопки навигации */
+  document.getElementById('orbitLeft').addEventListener('click', () => {
+    worldCamera.targetPanX -= 0.3; updatePanIndicators();
+    showShiftIndicator('← ' + worldCamera.targetPanX.toFixed(1));
+  });
+  document.getElementById('orbitRight').addEventListener('click', () => {
+    worldCamera.targetPanX += 0.3; updatePanIndicators();
+    showShiftIndicator('→ ' + worldCamera.targetPanX.toFixed(1));
+  });
+  document.getElementById('orbitUp').addEventListener('click', () => {
+    worldCamera.targetPanY -= 0.3; updatePanIndicators();
+    showShiftIndicator('↑ ' + worldCamera.targetPanY.toFixed(1));
+  });
+  document.getElementById('orbitDown').addEventListener('click', () => {
+    worldCamera.targetPanY += 0.3; updatePanIndicators();
+    showShiftIndicator('↓ ' + worldCamera.targetPanY.toFixed(1));
+  });
+  document.getElementById('resetView').addEventListener('click', () => {
+    worldCamera.targetPanX = 0; worldCamera.targetPanY = 0; worldCamera.targetZoom = 1;
+    updatePanIndicators();
+    showShiftIndicator('СБРОС КАМЕРЫ');
+  });
+  document.getElementById('zoomIn').addEventListener('click', () => {
+    worldCamera.targetZoom = Math.min(3, worldCamera.targetZoom * 1.2);
+    showShiftIndicator('ZOOM ' + worldCamera.targetZoom.toFixed(2));
+  });
+  document.getElementById('zoomOut').addEventListener('click', () => {
+    worldCamera.targetZoom = Math.max(0.5, worldCamera.targetZoom / 1.2);
+    showShiftIndicator('ZOOM ' + worldCamera.targetZoom.toFixed(2));
+  });
+
+  /* Перетаскивание и зум мышью по канвасу мира */
+  let worldDragging = false, worldDragStart = null, worldDragMoved = false;
+  planetCanvas.addEventListener('mousedown', e => {
+    worldDragging = true;
+    worldDragMoved = false;
+    worldDragStart = { x: e.clientX, y: e.clientY, panX: worldCamera.targetPanX, panY: worldCamera.targetPanY };
+    planetCanvas.classList.add('dragging');
+  });
+  window.addEventListener('mousemove', e => {
+    if (!worldDragging) return;
+    const dx = e.clientX - worldDragStart.x;
+    const dy = e.clientY - worldDragStart.y;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) worldDragMoved = true;
+    worldCamera.targetPanX = worldDragStart.panX - dx / 120;
+    worldCamera.targetPanY = worldDragStart.panY - dy / 120;
+    updatePanIndicators();
+  });
+  window.addEventListener('mouseup', () => {
+    if (worldDragging) {
+      worldDragging = false;
+      planetCanvas.classList.remove('dragging');
+    }
+  });
+  planetCanvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.12 : 0.89;
+    worldCamera.targetZoom = Math.max(0.5, Math.min(3, worldCamera.targetZoom * factor));
+    showShiftIndicator('ZOOM ' + worldCamera.targetZoom.toFixed(2));
+  }, {passive:false});
+
+  /* ================================================================ */
+  /* ==================== АНИМАЦИЯ МИРА ============================= */
+  /* ================================================================ */
+
+  function startPlanetAnimation(dna, satellites) {
+    const ctx = planetCanvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+
+    let cw = window.innerWidth;
+    let ch = window.innerHeight;
+
+    function resize() {
+      cw = window.innerWidth;
+      ch = window.innerHeight;
+      planetCanvas.width = cw * dpr;
+      planetCanvas.height = ch * dpr;
+      planetCanvas.style.width = cw + 'px';
+      planetCanvas.style.height = ch + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const baseColor = dna.categoryColor;
+    const statusColor = dna.statusColor;
+    const dark = shade(baseColor, -70);
+    const darker = shade(baseColor, -85);
+    const light = shade(baseColor, 40);
+
+    /* Параллакс-слои гор/города */
+    const layers = [];
+    const layerCount = 5;
+    for (let l = 0; l < layerCount; l++) {
+      const depth = (l + 1) / layerCount;
+      const points = [];
+      const step = 40 + l * 20;
+      const baseY = ch * (0.55 + depth * 0.20);
+      const amplitude = 60 + l * 40;
+      for (let x = -300; x <= cw + 300; x += step) {
+        const noise = Math.sin(x * 0.005 + l) * amplitude +
+                      Math.cos(x * 0.013 + l * 2) * amplitude * 0.5;
+        points.push({x, y: baseY + noise});
+      }
+      layers.push({
+        depth, points,
+        color: l === 0 ? darker : (l === 1 ? dark : shade(baseColor, -40 + l * 15)),
+        speed: depth * 0.3
+      });
+    }
+
+    /* Частицы неба */
+    const particles = [];
+    for (let i = 0; i < 80; i++) {
+      particles.push({
+        x: Math.random() * cw,
+        y: Math.random() * ch * 0.6,
+        r: Math.random() * 1.8 + 0.5,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.2,
+        a: Math.random() * 0.6 + 0.2
+      });
+    }
+
+    /* Обработка клика по спутнику */
+    const satellitePositions = [];
+
+    let time = 0;
+
+    function draw() {
+      time += 0.008;
+
+      /* Плавное сглаживание камеры */
+      worldCamera.panX += (worldCamera.targetPanX - worldCamera.panX) * 0.08;
+      worldCamera.panY += (worldCamera.targetPanY - worldCamera.panY) * 0.08;
+      worldCamera.zoom += (worldCamera.targetZoom - worldCamera.zoom) * 0.08;
+
+      /* Мировой сдвиг — влияет на все слои */
+      const worldShiftX = worldCamera.panX * 120;
+      const worldShiftY = worldCamera.panY * 60;
+
+      /* Пульс от действия */
+      worldPulse *= 0.96;
+
+      /* === НЕБО === */
+      const grad = ctx.createLinearGradient(0, worldShiftY, 0, ch + worldShiftY);
+      grad.addColorStop(0, darker);
+      grad.addColorStop(0.4, dark);
+      grad.addColorStop(0.75, shade(baseColor, -30));
+      grad.addColorStop(1, shade(baseColor, -10));
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, cw, ch);
+
+      /* Атмосферное свечение */
+      const atm = ctx.createRadialGradient(cw*0.3 + worldShiftX*0.2, ch*0.7 + worldShiftY*0.2, 0, cw*0.3 + worldShiftX*0.2, ch*0.7 + worldShiftY*0.2, cw*0.7);
+      atm.addColorStop(0, hexToRgba(baseColor, 0.25));
+      atm.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = atm;
+      ctx.fillRect(0, 0, cw, ch);
+
+      /* === СВЕТИЛО === */
+      const starX = cw * 0.78 + worldShiftX * 0.4;
+      const starY = ch * 0.22 + worldShiftY * 0.4;
+      const starR = Math.min(cw, ch) * 0.06;
+
+      const starGlow = ctx.createRadialGradient(starX, starY, 0, starX, starY, starR * 6);
+      starGlow.addColorStop(0, hexToRgba(light, 0.95));
+      starGlow.addColorStop(0.3, hexToRgba(baseColor, 0.5));
+      starGlow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = starGlow;
+      ctx.beginPath();
+      ctx.arc(starX, starY, starR * 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = hexToRgba(light, 1);
+      ctx.beginPath();
+      ctx.arc(starX, starY, starR, 0, Math.PI * 2);
+      ctx.fill();
+
+      /* Пульс */
+      if (worldPulse > 0.02) {
+        const pulseR = Math.max(cw, ch) * (1 - worldPulse);
+        ctx.strokeStyle = hexToRgba(worldPulseColor, worldPulse * 0.6);
+        ctx.lineWidth = 4 + worldPulse * 8;
+        ctx.beginPath();
+        ctx.arc(starX, starY, pulseR, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      /* === ЧАСТИЦЫ НЕБА === */
+      ctx.fillStyle = hexToRgba(light, 0.6);
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0) p.x = cw;
+        if (p.x > cw) p.x = 0;
+        if (p.y < 0) p.y = ch * 0.6;
+        if (p.y > ch * 0.6) p.y = 0;
+        ctx.globalAlpha = p.a;
+        ctx.beginPath();
+        ctx.arc(p.x + worldShiftX * 0.15, p.y + worldShiftY * 0.15, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+
+      /* === ПАРАЛЛАКС-СЛОИ ГОРИЗОНТА === */
+      layers.forEach((layer, i) => {
+        ctx.fillStyle = layer.color;
+        ctx.beginPath();
+        const firstPt = layer.points[0];
+        ctx.moveTo(firstPt.x + worldShiftX * layer.depth, ch + 200);
+        layer.points.forEach((p, idx) => {
+          const wave = Math.sin(time * 2 + idx * 0.3 + i) * 6 * layer.depth;
+          ctx.lineTo(p.x + worldShiftX * layer.depth, p.y + wave + worldShiftY * layer.depth);
+        });
+        const lastPt = layer.points[layer.points.length - 1];
+        ctx.lineTo(lastPt.x + worldShiftX * layer.depth, ch + 200);
+        ctx.closePath();
+        ctx.fill();
+
+        /* Свечение по контуру */
+        ctx.strokeStyle = hexToRgba(baseColor, 0.25 * layer.depth);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        layer.points.forEach((p, idx) => {
+          const wave = Math.sin(time * 2 + idx * 0.3 + i) * 6 * layer.depth;
+          const px = p.x + worldShiftX * layer.depth;
+          const py = p.y + wave + worldShiftY * layer.depth;
+          if (idx === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        });
+        ctx.stroke();
+      });
+
+      /* === СПУТНИКИ — СВЯЗАННЫЕ МИРЫ === */
+      satellitePositions.length = 0;
+
+      const planetCenterX = cw / 2;
+      const planetCenterY = ch * 0.38;
+
+      satellites.forEach((sat, idx) => {
+        const ang = sat.angle + time * sat.speed * 40;
+        /* Радиус орбиты + сдвиг камеры влияет на видимость */
+        const orbitR = Math.min(cw, ch) * sat.radius * worldCamera.zoom;
+
+        const sxp = planetCenterX + Math.cos(ang) * orbitR;
+        const syp = planetCenterY + Math.sin(ang) * orbitR * 0.55;
+
+        /* Отсекаем за пределами экрана, но оставляем на границе для индикации */
+        if (sxp < -100 || sxp > cw + 100 || syp < -100 || syp > ch + 100) return;
+
+        const satSize = sat.size * (0.7 + worldCamera.zoom * 0.5);
+
+        /* Орбитальная линия */
+        ctx.strokeStyle = hexToRgba(sat.color, 0.08);
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.ellipse(planetCenterX, planetCenterY, orbitR, orbitR * 0.55, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        /* Свечение спутника */
+        const satGlow = ctx.createRadialGradient(sxp, syp, 0, sxp, syp, satSize * 3);
+        satGlow.addColorStop(0, hexToRgba(sat.color, 0.8));
+        satGlow.addColorStop(0.4, hexToRgba(sat.color, 0.3));
+        satGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = satGlow;
+        ctx.beginPath();
+        ctx.arc(sxp, syp, satSize * 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* Основной круг спутника */
+        ctx.fillStyle = sat.statusColor;
+        ctx.strokeStyle = sat.color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(sxp, syp, satSize, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        /* Яркая точка внутри */
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(sxp, syp, satSize * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* Название */
+        ctx.fillStyle = hexToRgba(light, 0.9);
+        ctx.font = `600 ${Math.max(9, 10 * worldCamera.zoom)}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        const label = sat.name.length > 20 ? sat.name.substring(0, 18) + '…' : sat.name;
+        ctx.fillText(label, sxp, syp + satSize + 6);
+
+        /* Тип спутника */
+        const typeLabel = sat.type === 'ancestor' ? '◄ ПРЕДШЕСТВЕННИК' :
+                          sat.type === 'descendant' ? '► ПОТОМОК' :
+                          '⛓ СВЯЗАННЫЙ';
+        ctx.fillStyle = hexToRgba(sat.color, 0.6);
+        ctx.font = `700 ${Math.max(7, 8 * worldCamera.zoom)}px Inter, sans-serif`;
+        ctx.fillText(typeLabel, sxp, syp + satSize + 6 + 14);
+
+        /* Сохраняем для клика */
+        satellitePositions.push({
+          x: sxp, y: syp,
+          radius: satSize + 8,
+          id: sat.id
+        });
+      });
+
+      /* === АТМОСФЕРНЫЙ ОТКЛИК СТАТУСА === */
+      ctx.fillStyle = hexToRgba(statusColor, dna.mood.hope * 0.06);
+      ctx.fillRect(0, 0, cw, ch);
+
+      /* === ВИНЬЕТКА === */
+      const vig = ctx.createRadialGradient(cw/2, ch/2, ch*0.3, cw/2, ch/2, ch*0.9);
+      vig.addColorStop(0, 'rgba(0,0,0,0)');
+      vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+      ctx.fillStyle = vig;
+      ctx.fillRect(0, 0, cw, ch);
+
+      canvasAnimId = requestAnimationFrame(draw);
+    }
+
+    draw();
+
+    /* Клик по спутнику */
+    planetCanvas.addEventListener('click', e => {
+      if (worldDragMoved) { worldDragMoved = false; return; }
+      const rect = planetCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      for (const sp of satellitePositions) {
+        const dx = mx - sp.x, dy = my - sp.y;
+        if (dx*dx + dy*dy < sp.radius * sp.radius) {
+          showShiftIndicator('ПЕРЕХОД: ' + nodes[sp.id]?.name);
+          setTimeout(() => {
+            exitPlanet();
+            setTimeout(() => enterPlanet(sp.id), 150);
+          }, 400);
+          return;
+        }
+      }
+    });
+  }
+
   /* ============ ИНИЦИАЛИЗАЦИЯ ============ */
   renderLegend();
   renderCatFilters();
   updateStats();
 
-  console.log('yaMetaverse загружена.');
+  console.log('yaMetaverse v12.0 загружена.');
   console.log('Продуктов:', RAW.length);
   console.log('Горизонт + SCI-FI:', HORIZON.length);
   console.log('Всего узлов:', ALL_NODES.length);
+  console.log('Прокрутка по горизонту и глубине + спутники включены.');
 
 })();
 </script>
