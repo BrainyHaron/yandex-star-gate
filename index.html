@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Яндекс · yaMetaverse (1997–2050)</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#02020a; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#fff; }
+  #bg { position:fixed; inset:0; z-index:0; overflow:hidden; }
+  .bgstar { position:absolute; background:#fff; border-radius:50%; animation: tw 4s infinite ease-in-out; }
+  @keyframes tw { 0%,100%{opacity:.12} 50%{opacity:.85} }
+  #wrap { position:fixed; inset:0; z-index:1; cursor:grab; overflow:hidden; }
+  #wrap.drag { cursor:grabbing; }
+  svg { display:block; position:absolute; left:0; top:0; transform-origin:0 0; }
+  .node { cursor:pointer; transition: opacity .35s ease, filter .25s; }
+  .node.search-dimmed { opacity: .04; pointer-events: none; }
+  .node.path-dimmed { opacity: .04; pointer-events: none; }
+  .node.filter-dimmed { opacity: .05; pointer-events: none; }
+  .node.search-match circle:first-child,
+  .node.search-match polygon:first-child,
+  .node.search-match rect:first-child { opacity: .40 !important; }
+  .node.search-match text { fill: #fff !important; font-weight: 800 !important; font-size: 14px !important; }
+  .node.path-active circle:first-child,
+  .node.path-active polygon:first-child,
+  .node.path-active rect:first-child { opacity: .40 !important; }
+  .node.path-active text { fill: #fff !important; font-weight: 800 !important; font-size: 14px !important; }
+  .node.path-active.path-descendant text { fill: #aabbff !important; }
+  .node.filter-highlight circle:first-child,
+  .node.filter-highlight polygon:first-child,
+  .node.filter-highlight rect:first-child { opacity: .45 !important; }
+  .node.filter-highlight text { font-weight: 800 !important; }
+  .link-dimmed { opacity: .03 !important; }
+  .link-active { opacity: .7 !important; stroke-width: 2.5 !important; }
+  .link-related { opacity: .10 !important; stroke-dasharray: 4 4; }
+  .link-related.link-active { opacity: .55 !important; stroke-dasharray: 4 4; stroke-width: 2 !important; }
+  .link-filter-dimmed { opacity: .02 !important; }
+  #tip {
+    position:fixed; background:rgba(8,8,24,.96); border:1px solid #2a2a4a;
+    padding:12px 16px; border-radius:10px; font-size:12px; pointer-events:none;
+    display:none; z-index:100; max-width:380px; line-height:1.5;
+    box-shadow: 0 8px 32px rgba(0,0,0,.7);
+  }
+  #tip b { color:#fff; font-size:13px; display:block; margin-bottom:4px; }
+  #tip .meta { color:#889; font-size:11px; }
+  #tip .src { color:#667; font-size:10px; margin-top:6px; font-style:italic; }
+  #tip .owner { color:#8899bb; font-size:10px; margin-top:4px; }
+  #tip .st { display:inline-block; padding:2px 8px; border-radius:5px; font-size:10px; margin-top:8px; letter-spacing:1px; font-weight:600; }
+  #hud { position:fixed; top:24px; left:24px; z-index:10; pointer-events:none; }
+  #hud h1 { margin:0; font-size:22px; font-weight:800; letter-spacing:4px; text-shadow: 0 0 24px rgba(255,183,0,.4); }
+  #hud h1 span { color:#ffb700; }
+  #hud p { margin:8px 0 0; font-size:10px; color:#556; letter-spacing:3px; }
+  #search { position:fixed; top:24px; right:24px; z-index:20; background:rgba(8,8,24,.9); backdrop-filter:blur(12px); border:1px solid #2a2a4a; border-radius:12px; padding:12px 18px; display:flex; align-items:center; gap:12px; box-shadow: 0 8px 32px rgba(0,0,0,.6); }
+  #search input { background:transparent; border:none; outline:none; color:#fff; font-size:14px; width:220px; font-family:inherit; }
+  #search input::placeholder { color:#445; }
+  #search .icon { font-size:16px; opacity:.6; }
+  #search .clear { cursor:pointer; opacity:.5; font-size:14px; padding:2px 6px; border-radius:4px; transition: all .2s; }
+  #search .clear:hover { opacity:1; background:#2a2a4a; }
+  #pathInfo { position:fixed; top:80px; right:24px; z-index:20; background:rgba(8,8,24,.92); backdrop-filter:blur(12px); border:1px solid #2a2a4a; border-radius:12px; padding:16px 20px; max-width:420px; max-height:70vh; overflow-y:auto; display:none; box-shadow: 0 8px 32px rgba(0,0,0,.6); }
+  #pathInfo h4 { margin:14px 0 8px; font-size:10px; letter-spacing:3px; color:#556; font-weight:700; }
+  #pathInfo h4:first-child { margin-top:0; }
+  #pathInfo .step { display:flex; align-items:center; gap:10px; margin:6px 0; font-size:12px; color:#cdd5e0; }
+  #pathInfo .step .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  #pathInfo .step .dot-sq { width:8px; height:8px; border-radius:1px; flex-shrink:0; }
+  #pathInfo .step .dot-di { width:8px; height:8px; border-radius:1px; transform:rotate(45deg); flex-shrink:0; }
+  #pathInfo .step .year { color:#556; font-size:10px; min-width:38px; font-family:monospace; }
+  #pathInfo .step.current { font-weight:700; }
+  #pathInfo .step.current .year { color:#ffb700; }
+  #pathInfo .rel-tag { color:#667; font-size:9px; margin-left:auto; padding:1px 6px; border:1px solid #334; border-radius:3px; letter-spacing:1px; }
+  #legend { position:fixed; bottom:24px; left:24px; z-index:10; background:rgba(8,8,24,.88); backdrop-filter:blur(12px); padding:16px 20px; border-radius:12px; border:1px solid #1a1a2e; font-size:11px; box-shadow: 0 8px 32px rgba(0,0,0,.5); max-height:62vh; overflow-y:auto; width:260px; }
+  #legend h3 { margin:12px 0 8px; font-size:10px; letter-spacing:3px; color:#667; font-weight:700; }
+  #legend h3:first-child { margin-top:0; }
+  #legend .item { margin:5px 0; display:flex; align-items:center; gap:10px; color:#aab; cursor:pointer; padding:3px 6px; border-radius:5px; transition: background .15s; user-select:none; }
+  #legend .item:hover { background:rgba(255,255,255,.04); }
+  #legend .item.active { background:rgba(255,183,0,.10); color:#fff; }
+  #legend .item .d { width:10px; height:10px; border-radius:50%; flex-shrink:0; transition: box-shadow .2s; }
+  #legend .item.active .d { box-shadow: 0 0 12px currentColor; }
+  #legend .item .d-dash { border:1px dashed #556 !important; }
+  #legend .item .d-sq { border-radius:2px !important; }
+  #legend .item .d-di { border-radius:1px !important; transform:rotate(45deg); }
+  #legend .item .cnt { margin-left:auto; color:#556; font-size:10px; font-family:monospace; }
+  #legend .item.active .cnt { color:#ffb700; }
+  #legend .reset { margin-top:10px; font-size:10px; color:#556; text-align:center; cursor:pointer; padding:6px; border-top:1px solid #1a1a2e; transition:color .15s; }
+  #legend .reset:hover { color:#ffb700; }
+  #catFilters { position:fixed; bottom:24px; left:300px; z-index:10; background:rgba(8,8,24,.88); backdrop-filter:blur(12px); padding:16px 20px; border-radius:12px; border:1px solid #1a1a2e; font-size:11px; box-shadow: 0 8px 32px rgba(0,0,0,.5); max-height:62vh; overflow-y:auto; width:240px; }
+  #catFilters h3 { margin:0 0 8px; font-size:10px; letter-spacing:3px; color:#667; font-weight:700; }
+  #catFilters .item { margin:5px 0; display:flex; align-items:center; gap:10px; color:#aab; cursor:pointer; padding:3px 6px; border-radius:5px; transition: background .15s; user-select:none; }
+  #catFilters .item:hover { background:rgba(255,255,255,.04); }
+  #catFilters .item.active { background:rgba(255,183,0,.10); color:#fff; }
+  #catFilters .item .d { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  #catFilters .item .cnt { margin-left:auto; color:#556; font-size:10px; font-family:monospace; }
+  #catFilters .item.active .cnt { color:#ffb700; }
+  #catFilters .reset { margin-top:10px; font-size:10px; color:#556; text-align:center; cursor:pointer; padding:6px; border-top:1px solid #1a1a2e; transition:color .15s; }
+  #catFilters .reset:hover { color:#ffb700; }
+  #stats { position:fixed; top:24px; left:50%; transform:translateX(-50%); z-index:15; background:rgba(8,8,24,.85); backdrop-filter:blur(12px); padding:10px 20px; border-radius:10px; border:1px solid #1a1a2e; font-size:11px; color:#889; letter-spacing:1px; display:flex; gap:16px; align-items:center; box-shadow: 0 8px 32px rgba(0,0,0,.5); }
+  #stats .stat { display:flex; gap:6px; align-items:center; }
+  #stats .stat b { color:#fff; font-weight:700; }
+  #stats .stat.active-stat b { color:#ffb700; }
+  #hint { position:fixed; bottom:24px; right:24px; z-index:10; font-size:10px; color:#334; letter-spacing:2px; font-weight:600; }
+  #hint kbd { background:#111; border:1px solid #222; padding:2px 6px; border-radius:4px; color:#667; font-family:inherit; }
+  #disclaimer { position:fixed; bottom:6px; left:50%; transform:translateX(-50%); z-index:10; font-size:9px; color:#445; letter-spacing:1px; text-align:center; max-width:700px; opacity:.7; pointer-events:none; line-height:1.4; }
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<div id="wrap"><svg id="svg"></svg></div>
+<div id="hud">
+  <h1>ЯНДЕКС <span>·</span> ЗВЁЗДНАЯ КАРТА v9.0</h1>
+  <p>1997 → 2050 · РЕАЛЬНОСТЬ · ГОРИЗОНТ · SCI-FI</p>
+</div>
+<div id="stats"></div>
+<div id="search">
+  <span class="icon">🔍</span>
+  <input type="text" id="searchInput" placeholder="Поиск сервиса..." autocomplete="off">
+  <span class="clear" id="clearBtn">✕</span>
+</div>
+<div id="legend"></div>
+<div id="catFilters"></div>
+<div id="pathInfo"></div>
+<div id="tip"></div>
+<div id="hint"><kbd>SCROLL</kbd> ZOOM · <kbd>DRAG</kbd> PAN · <kbd>CLICK</kbd> PATH · <kbd>FILTER</kbd> HIGHLIGHT</div>
+<div id="disclaimer">Слой «Технологический горизонт» и «SCI-FI» отделены от исторической карты. Прогнозы после 2030 — сценарии, не план компании. Источники в тултипах.</div>
+<script>
+(function() {
+  'use strict';
+
+  /* ============ КОНФИГУРАЦИЯ ============ */
+  const CATS = {
+    info: {a:  -90, c:'#4ea1ff', l:'ИНФОРМАЦИЯ'},
+    geo:  {a:  -45, c:'#00e0ff', l:'ГЕО · МОБИЛЬНОСТЬ'},
+    comm: {a:    0, c:'#ffb700', l:'КОММЕРЦИЯ'},
+    fun:  {a:   45, c:'#c14eff', l:'РАЗВЛЕЧЕНИЯ'},
+    fin:  {a:   90, c:'#00ff88', l:'ФИНАНСЫ'},
+    b2b:  {a:  135, c:'#8a9aaa', l:'B2B · ОФИС'},
+    dev:  {a:  180, c:'#ff6a00', l:'ОБЛАКО · DEV'},
+    ai:   {a: -135, c:'#ff2a6d', l:'ИИ'},
+    auto: {a: -160, c:'#00ddaa', l:'АВТОНОМНОСТЬ'},
+    horizon: {a: -100, c:'#aa88ff', l:'ТЕХНОЛОГИЧЕСКИЙ ГОРИЗОНТ'},
+    scifi: {a: -50, c:'#ff66cc', l:'SCI-FI · СТРЕСС-СЦЕНАРИИ'}
+  };
+
+  const ST = {
+    work:        {c:'#00ff88', l:'РАБОТАЕТ'},
+    integ:       {c:'#4ea1ff', l:'ИНТЕГРИРОВАН'},
+    sold:        {c:'#ffb700', l:'ПРОДАН'},
+    closed:      {c:'#ff3355', l:'ЗАКРЫТ'},
+    tech:        {c:'#c14eff', l:'ТЕХНОЛОГИЯ'},
+    event:       {c:'#aabbcc', l:'СОБЫТИЕ'},
+    separated:   {c:'#8a9aaa', l:'ОТДЕЛЁН / ВЫДЕЛЕН'},
+    pilot:       {c:'#aabbff', l:'ПИЛОТ'},
+    forecast:    {c:'#ffffff', l:'ПУБЛИЧНАЯ ЦЕЛЬ'},
+    scenario:    {c:'#aabbff', l:'ОТРАСЛЕВОЙ СЦЕНАРИЙ'},
+    speculation: {c:'#888888', l:'СПЕКУЛЯЦИЯ'},
+    existingResearch: {c:'#aa88ff', l:'ИССЛЕДОВАНИЕ / ПРОТОТИП'},
+    announcedTarget:  {c:'#c9aaff', l:'ПУБЛИЧНАЯ ЦЕЛЬ R&D'},
+    industryScenario: {c:'#9988dd', l:'ОТРАСЛЕВОЙ СЦЕНАРИЙ'},
+    speculativeHorizon:{c:'#776699', l:'СПЕКУЛЯЦИЯ'},
+    scienceFiction:   {c:'#ff66cc', l:'SCI-FI / СЦЕНАРИЙ'}
+  };
+
+  /* Группы слоёв для блока «Слои карты» */
+  const LAYERS = {
+    reality:  {l:'РЕАЛЬНОСТЬ', statuses:['work','integ','sold','closed','tech','event','separated','pilot']},
+    forecast: {l:'ПРОГНОЗ',    statuses:['forecast','scenario','speculation']},
+    horizon:  {l:'ГОРИЗОНТ',   statuses:['existingResearch','announcedTarget','industryScenario','speculativeHorizon']},
+    scifi:    {l:'SCI-FI',     statuses:['scienceFiction']}
+  };
+
+  const FUTURE_STATUSES = ['forecast', 'scenario', 'speculation', 'pilot',
+    'existingResearch', 'announcedTarget', 'industryScenario', 'speculativeHorizon', 'scienceFiction'];
+
+  /* ============ ОСНОВНАЯ КАРТА ПРОДУКТОВ ============ */
+  const RAW = [
+    ['search','Яндекс.Поиск',1997,'info','work',3,null,'Запущен на Softool 1997',null],
+    ['mail','Почта',2000,'info','work',2,'search','Запущена в 2000',null],
+    ['news','Новости',2000,'info','sold',2,'search','Переданы VK в 2022',null],
+    ['catalog','Каталог',2000,'info','closed',1,'search','Закрыт в 2017',null],
+    ['direct','Яндекс.Директ',2001,'comm','work',3,'search','Контекстная реклама',null],
+    ['images','Картинки',2002,'info','work',2,'search',null,null],
+    ['market','Маркет',2002,'comm','work',3,'search','От каталога до маркетплейса',null],
+    ['money','Яндекс.Деньги',2002,'fin','sold',2,null,'Продан Сберу 2020 → ЮMoney',null],
+    ['weather','Яндекс.Погода',2000,'info','work',2,'search','Существовала уже в 2000; Meteum — с 2015',null],
+    ['maps','Карты',2004,'geo','work',3,'search','Карты Москвы, СПб, Киева, Европы',null],
+    ['blogsearch','Поиск по блогам',2004,'info','integ',1,'search',null,null],
+    ['afisha','Афиша',2005,'fun','work',2,null,null,null],
+    ['lenta','Лента RSS',2005,'info','closed',1,'search','Закрыта в 2013',null],
+    ['slovari','Словари',2005,'info','closed',1,'search','Закрыты в 2016',null],
+    ['rsya','РСЯ',2005,'comm','work',2,'direct',null,null],
+    ['probki','Пробки на Картах',2006,'geo','integ',2,'maps','Функция Карт',null],
+    ['yaru','Я.ру',2006,'fun','closed',1,'search','Закрыт в 2014',null],
+    ['fotki','Фотки',2006,'info','closed',1,'search','Переехали на Диск в 2018',null],
+    ['metrica','Яндекс.Метрика',2007,'b2b','work',2,null,'Общедоступна с 24.04.2009',null],
+    ['rasp','Яндекс.Расписания',2008,'geo','work',2,null,'Запущен 15.04.2008',null],
+    ['puls','Пульс блогосферы',2007,'info','closed',1,'blogsearch','Закрыт в 2013',null],
+    ['kras','Яндекс.Краски',2007,'fun','closed',1,null,'Закрыт в феврале 2013',null],
+    ['matrixnet','MatrixNet',2009,'ai','tech',3,'search','Технология ранжирования',null],
+    ['music','Музыка',2010,'fun','work',3,null,null,null],
+    ['realty','Недвижимость',2010,'comm','work',1,'search',null,null],
+    ['rabota','Работа',2010,'comm','work',1,'search',null,null],
+    ['uslugi','Услуги',2010,'comm','work',2,'search',null,null],
+    ['by','yandex.by',2010,'info','work',1,'search',null,null],
+    ['ipo','IPO NASDAQ',2011,'fin','event',3,null,'Корпоративное событие',null],
+    ['perevod','Переводчик',2011,'info','work',2,'search',null,null],
+    ['nav','Навигатор',2012,'geo','work',3,'maps','Запущен в 2012',null],
+    ['crypta','Crypta',2011,'ai','tech',2,'direct',null,null],
+    ['disk','Яндекс.Диск',2012,'b2b','work',3,null,'Запущен в апреле 2012',null],
+    ['browser','Браузер',2012,'info','work',3,'search',null,null],
+    ['taxi','Такси',2012,'geo','work',3,null,'Сначала мобильное приложение',null],
+    ['carsharing','Каршеринг-агрегатор',2012,'geo','closed',1,'taxi','Закрыт в 2017',null],
+    ['kinopoisk','Покупка Кинопоиска',2013,'fun','event',2,null,'КиноПоиск существовал до покупки',null],
+    ['efir','Эфир',2013,'fun','closed',1,null,'Закрыт в 2021',null],
+    ['ludi','Люди',2013,'info','closed',1,'search','Закрыт в 2020',null],
+    ['master','Мастер',2014,'comm','closed',1,'uslugi','Закрыт через год',null],
+    ['gorod','Город',2014,'geo','closed',1,'maps','Закрыт в 2016',null],
+    ['toloka','Яндекс.Толока',2014,'ai','separated',2,'search','В структуре Nebius',null],
+    ['put','Путешествия',2014,'fun','work',2,null,null,null],
+    ['zakl','Закладки',2015,'info','closed',1,'browser','Закрыты в 2015',null],
+    ['meteum','Meteum',2015,'ai','tech',1,'weather','Технология прогноза',null],
+    ['meteum2','Meteum 2.0',2021,'ai','tech',1,'meteum','Учитывает сообщения пользователей',null],
+    ['zen','Дзен',2015,'fun','sold',3,null,'Продан VK в 2022',null],
+    ['progulki','Прогулки',2015,'fun','closed',1,null,'Закрыто через полгода',null],
+    ['launcher','Яндекс.Лончер',2015,'info','closed',1,null,'Поддержка прекращена в октябре 2023',null],
+    ['klav','Яндекс.Клавиатура',2015,'info','work',1,null,'Выпущена 3.12.2015',null],
+    ['health','Здоровье',2016,'b2b','integ',1,null,null,null],
+    ['connect','Яндекс Коннект',2017,'b2b','work',2,null,'Публичный запуск 2017',null],
+    ['alice','Алиса',2017,'ai','work',3,null,'Голосовой ассистент',null],
+    ['auto','Яндекс.Авто',2017,'geo','work',1,null,null,null],
+    ['zapr','Заправки',2017,'geo','work',1,'nav',null,null],
+    ['widgets','Виджеты',2017,'info','closed',1,null,null,null],
+    ['stroka','Строка',2017,'ai','integ',1,'alice',null,null],
+    ['plus','Яндекс Плюс',2018,'fin','work',3,null,'Мультисервисная подписка',null],
+    ['station','Станция',2018,'ai','work',3,'alice',null,null],
+    ['drive','Драйв',2018,'geo','work',2,'taxi',null,null],
+    ['eda','Еда',2018,'comm','work',3,null,null,null],
+    ['phone','Яндекс.Телефон',2018,'ai','closed',1,null,null,null],
+    ['cloud','Yandex Cloud',2018,'dev','work',3,null,'Облачная платформа',null],
+    ['beru','Беру',2018,'comm','integ',1,'market',null,null],
+    ['shef','Шеф',2018,'comm','closed',1,null,null,null],
+    ['bringly','Bringly',2018,'comm','closed',1,null,null,null],
+    ['strah','Страхование',2018,'fin','closed',1,null,null,null],
+    ['lavka','Лавка',2019,'comm','work',2,null,null,null],
+    ['robot','Робот-доставщик',2019,'auto','work',2,null,'R1 → R5.0',null],
+    ['mini','Станция Мини',2019,'ai','work',1,'station',null,null],
+    ['praktikum','Яндекс Практикум',2019,'b2b','work',2,null,'Образовательная платформа',null],
+    ['start','Яндекс Старт',2019,'info','work',1,null,'Приложение',null],
+    ['aura','Аура',2019,'fun','closed',1,null,'Закрыта в 2020',null],
+    ['go','Яндекс Go',2020,'geo','work',3,'taxi',null,null],
+    ['y360','Яндекс 360',2020,'b2b','work',3,'connect',null,null],
+    ['pay','Yandex Pay',2021,'fin','work',2,null,null,null],
+    ['y2','Y2 · поиск',2022,'ai','tech',2,'matrixnet',null,null],
+    ['delivery','Delivery Club',2022,'comm','work',2,null,'Получен от VK взамен Дзена',null],
+    ['crowd','Яндекс Крауд',2022,'b2b','work',2,null,'Внутренний сервис',null],
+    ['gpt','YandexGPT',2023,'ai','work',3,null,'Май 2023, первое поколение',null],
+    ['gpt2','YandexGPT 2',2023,'ai','tech',1,'gpt','⚠️ Версия модели',null],
+    ['shedevrum','Шедеврум',2023,'fun','work',2,null,'Генерация изображений',null],
+    ['robotaxi','Robotaxi',2023,'auto','work',2,null,null,null],
+    ['q','Кью',2023,'info','closed',1,null,'Заморожен',null],
+    ['tasks','Яндекс Задания',2023,'ai','work',2,null,'Российская краудсорсинговая платформа',null],
+    ['gpt3','YandexGPT 3',2024,'ai','tech',2,'gpt2','⚠️ Требует уточнения',null],
+    ['gpt4','YandexGPT 4',2024,'ai','tech',2,'gpt3','⚠️ Требует уточнения',null],
+    ['b2b','Yandex B2B Tech',2024,'b2b','work',2,'cloud','Бизнес-направление',null],
+    ['aliceai','Алиса AI',2024,'ai','work',3,'alice','Нейросеть в Алисе',null],
+    ['autoru','Auto.ru — приобретение',2014,'comm','event',2,null,'Покупка Яндексом',null],
+    ['gpt5','YandexGPT 5 Pro',2025,'ai','tech',3,'gpt4','Февраль 2025',null],
+    ['gpt51','YandexGPT 5.1 Pro',2025,'ai','tech',2,'gpt5','Август 2025',null],
+    ['sourcecraft','SourceCraft',2025,'dev','work',2,'b2b','Запущен 26.02.2025',null],
+    ['aistudio','AI Studio',2025,'ai','work',3,'gpt','40 тыс. клиентов к сентябрю 2025',null],
+    ['alicepro','Алиса Про',2025,'ai','work',2,'alice','⚠️ Дата требует уточнения',null],
+    ['onprem','360 on-premises',2025,'b2b','work',2,'y360','Развёртывания для бизнеса',null],
+    ['r5','Робот R 5.0',2025,'auto','work',1,'robot','Анонс октября 2025',null],
+    ['zabota','Яндекс Забота',2025,'fin','work',2,null,'Запущена 14.08.2025',null],
+    ['browserai','Браузер ИИ-агент',2025,'ai','work',2,'browser','Альфа-тест 27.08.2025',null],
+    ['goai','Алиса AI в Go',2025,'geo','work',2,'go','Бета-тест 18.12.2025',null],
+    ['rms','Яндекс Роботикс RMS',2025,'auto','work',2,null,'Система управления парком роботов',null],
+    ['yauto','Яндекс Авто (ИИ)',2026,'geo','work',2,'auto','Представлена 24.04.2026 в Пекине',null],
+    ['ysim','Яндекс Сим',2026,'fin','work',2,null,'MVNO на сети Билайна; 28.08.2026',null],
+    ['orchestrator','Оркестратор ИИ',2026,'ai','tech',2,'aliceai','⚠️ Требует источника',null],
+    ['agentplatform','Платформа ИИ-агентов',2026,'ai','work',2,'aliceai','⚠️ Требует источника',null],
+    ['officeagent','Офисный ИИ-агент',2026,'b2b','pilot',2,'b2b','⚠️ Требует источника',null],
+    ['autoru_sale','Auto.ru — продажа Т-Технологиям',2026,'comm','sold',2,'autoru','Сделка закрыта 2.06.2026; 35 млрд руб.',null],
+
+    ['trans_alice','Транзакционная Алиса',2026,'comm','forecast',3,'alice','Подразделение создано в марте 2026','Forbes'],
+    ['ycp','Yandex Commerce Protocol',2026,'comm','forecast',3,'trans_alice','Объявлен 27.02.2026','pay.yandex.ru'],
+    ['robot_100','Роботакси 100 в Москве',2026,'auto','forecast',2,'robotaxi','План на конец 2026','IR Yandex Q1 2026'],
+    ['alice_1m','Alice AI · 1 млн устройств',2026,'ai','forecast',2,'aliceai','Казахстан, по данным компании','Yandex KZ'],
+    ['sona','Sona · рекомендации',2026,'fun','forecast',3,'music','+6,30% времени прослушивания','arXiv 2608.11015'],
+    ['x5_robots','X5 · 100+ роботов',2026,'auto','forecast',2,'rms','Ускорение сборки в 2,5 раза','Yandex news 16.09.2025'],
+
+    ['robot_20k','Роботы-доставщики 20 000',2027,'auto','forecast',3,'robot','Публичная цель выпуска','Interfax'],
+    ['gpt6','YandexGPT 6 (ожидание)',2027,'ai','forecast',2,'gpt51','Цикл обновления ~1–1,5 года','Интерполяция'],
+
+    ['robotaxi_1k','Роботакси 1000+',2030,'auto','forecast',2,'robotaxi','Ориентир руководства','ТАСС 2026'],
+    ['b2b_25','B2B · четверть выручки',2030,'b2b','forecast',2,'b2b','Оценка аналитиков','Велес Капитал'],
+    ['rev_3t','Выручка 3 трлн ₽',2030,'fin','forecast',2,null,'CAGR ~17% по модели','Велес Капитал'],
+
+    ['imt2030','6G / IMT-2030',2030,'dev','scenario',2,null,'Возможное начало внедрения','ITU-R WP5D'],
+    ['rev_ai','ИИ-покупки 10% онлайн',2030,'comm','scenario',2,'trans_alice','Прогноз Яндекса','Forbes'],
+    ['agent_b2b','Промышленные ИИ-агенты',2030,'b2b','scenario',2,'aistudio','Закупки, кадры, документооборот','ITFB меморандум'],
+    ['edge_ai','Edge-инференс',2030,'dev','scenario',1,'cloud','Локальная обработка','Отраслевой тренд'],
+    ['energy_ai','Дефицит энергии для ИИ',2030,'dev','scenario',2,null,'Потребление ДЦ может удвоиться','IEA 2025'],
+    ['avto_office','Автономные офисы',2030,'b2b','scenario',1,null,'Гибридные команды + ИИ-агенты','Экстраполяция'],
+
+    ['agent_ui','Агент как интерфейс',2035,'ai','scenario',3,'aliceai','Пользователь задаёт цель','Отраслевой тренд'],
+    ['warehouse','Складская роботизация B2B',2035,'auto','scenario',2,'rms','Аналог Amazon Robotics','FT'],
+    ['digital_city','Цифровая модель города',2035,'geo','scenario',2,'maps','Логистика, трафик','Экстраполяция'],
+    ['personal_agent','Персональный агент',2035,'ai','scenario',2,'agent_ui','Долгий контекст, память','Экстраполяция'],
+    ['health_wearable','Здоровье на носимых',2035,'b2b','scenario',2,'health','Анализ данных без диагностики','Экстраполяция'],
+    ['green_dc','Зелёные дата-центры',2035,'dev','scenario',1,'cloud','PUE < 1,1','Yandex Cloud'],
+
+    ['companion','ИИ-компаньон',2040,'ai','scenario',2,'personal_agent','Постоянный контекст','Экстраполяция'],
+    ['autonomous_zone','Автономные зоны городов',2040,'auto','scenario',2,'robotaxi_1k','Зоны без оператора','Экстраполяция'],
+    ['digital_twin','Цифровой двойник логистики',2040,'dev','scenario',2,'cloud','Симуляция до операции','Экстраполяция'],
+    ['cross_border','Кросс-граничные экосистемы',2040,'fin','scenario',1,'pay','Интеграция с рынками','Экстраполяция'],
+    ['quantum_ai','Квантовые ускорители ИИ',2040,'dev','scenario',1,'cloud','Гибридные системы','Отраслевой тренд']
+  ];
+
+  /* ============ ГОРИЗОНТ И SCI-FI ============ */
+  const HORIZON = [
+    ['altai1','AltAI-1 · нейроморфный SNN-процессор',2020,'horizon','existingResearch',2,'relatedTo',null,
+      'Прототип: 16 ядер × 512 нейронов; импульсные нейросети',
+      'Kaspersky neuro.kaspersky.com', 'Мотив НТ / Kaspersky'],
+    ['altai2','AltAI-2 · online learning',2026,'horizon','announcedTarget',2,'successorOf','altai1',
+      'Публичный план выпуска; не считать состоявшимся релизом',
+      'support.kaspersky.com', 'Мотив НТ / Kaspersky'],
+    ['altai3','AltAI-3 · следующее поколение',2026,'horizon','announcedTarget',1,'successorOf','altai2',
+      'Опытная партия 2026; серия возможна в 2027',
+      'braintools.ru', 'Мотив НТ'],
+    ['biomorph','Биоморфный нейропроцессор ТюмГУ',2018,'horizon','existingResearch',1,'analogy',null,
+      'Мемристорно-диодные кроссбары; лабораторный прототип',
+      'utmn.ru', 'Тюменский госуниверситет'],
+    ['neuromorphic_edge','Нейроморфный edge-ускоритель',2030,'horizon','industryScenario',2,'technologyScenario','altai2',
+      'Событийная обработка аудио, видео, сенсоров при жёстком бюджете энергии',
+      'Nature / обзоры нейроморфных систем', null],
+    ['hala_point','Hala Point · 1,15 млрд нейронов',2024,'horizon','existingResearch',1,'relatedTo',null,
+      'Нейроморфный прототип: в 20 раз быстрее мозга, энергоэффективность ×100',
+      'Intel / Gartner', 'Intel'],
+
+    ['bci_medical','BCI для коммуникации и управления',2030,'horizon','industryScenario',2,'technologyScenario',null,
+      'Помощь людям с двигательными и речевыми нарушениями; нужны клинические доказательства',
+      'Nature Reviews Bioengineering', null],
+    ['bci_consumer','Потребительский нейроинтерфейс',2040,'horizon','speculativeHorizon',1,'scenario','bci_medical',
+      'Массовый интерфейс для здоровых пользователей — крайне спекулятивно',
+      'Курцвейл, личные прогнозы', null],
+    ['neuro_cloud','Нейрокортикальный интернет',2045,'horizon','speculativeHorizon',1,'scenario','bci_consumer',
+      'Мысленная связь мозга с облаком — футурология, не R&D',
+      'Kurzweil 2030-е в его сценарии', null],
+
+    ['quantum_fian','70-кубитный вычислитель ФИАН',2025,'horizon','existingResearch',2,'relatedTo',null,
+      'Экспериментальный результат; не готов к промышленной оптимизации',
+      'scientificrussia.ru', 'ФИАН'],
+    ['quantum_rosatom','300-кубитный вычислитель Росатома',2030,'horizon','announcedTarget',2,'successorOf','quantum_fian',
+      'Публичная цель программы; не значит практическую готовность',
+      'Росатом', 'Росатом'],
+    ['quantum_hybrid','Гибридные квантово-классические вычисления',2035,'horizon','industryScenario',2,'technologyScenario','quantum_rosatom',
+      'Пилоты для моделирования и оптимизации; преимущество нужно доказать на задаче',
+      'arXiv 2402.17520', null],
+
+    ['agi_2029','AGI по Курцвейлу',2029,'horizon','speculativeHorizon',2,'analogy',null,
+      'Личный прогноз футуролога; не научный консенсус',
+      'Kurzweil, интервью 2026', 'Ray Kurzweil'],
+    ['nanobots','Нанороботы в неокортексе',2035,'horizon','speculativeHorizon',1,'scenario','agi_2029',
+      'Футурологическая гипотеза связи мозга с облаком',
+      'Kurzweil', 'Ray Kurzweil'],
+    ['longevity','Longevity escape velocity',2040,'horizon','speculativeHorizon',1,'analogy',null,
+      'Концепция: прогресс медицины быстрее старения; не утверждённая цель',
+      'diamandis.com', 'Peter Diamandis'],
+    ['exoskeleton','Экзоскелеты для промышленности',2030,'horizon','industryScenario',2,'relatedTo',null,
+      'XoMotion, Ascentiz H+K; помогают поднимать тяжести без травм',
+      'Daily Mail, CES', 'Различные производители'],
+    ['driverless_cars','Беспилотные автомобили',2030,'horizon','industryScenario',2,'relatedTo',null,
+      'Уже тестируются; главные барьеры — право и страховка',
+      'Minority Report (2002), реальные тесты', 'Waymo, Yandex, Tesla'],
+    ['smartwatches','Умные часы и носимые устройства',2015,'horizon','existingResearch',3,'relatedTo',null,
+      'Seiko TV Watch (1983) → Apple Watch, Samsung Galaxy Watch',
+      'Daily Mail, BGR', 'Apple, Samsung, Seiko'],
+    ['universal_translator','Универсальный переводчик',2011,'horizon','existingResearch',3,'relatedTo',null,
+      'Star Trek (1966) → Яндекс.Переводчик, Google Translate, LLM-перевод',
+      'Yahoo Tech, Star Trek', 'Яндекс, Google'],
+    ['padd','PADD · планшетный компьютер',2010,'horizon','existingResearch',3,'relatedTo',null,
+      'Star Trek: TNG (1987) → Apple iPad (2010)',
+      'Yahoo Tech', 'Apple'],
+    ['tricorder','Трикордер · портативный анализатор',2020,'horizon','existingResearch',2,'relatedTo',null,
+      'Star Trek (1966) → MyotonPRO, цифровые анализаторы',
+      'European Space Agency', 'Различные'],
+    ['touchscreens','Сенсорные экраны',2007,'horizon','existingResearch',3,'relatedTo',null,
+      'Star Trek (1966) → iPhone (2007), повсеместные тачскрины',
+      'Yahoo Tech', 'Apple'],
+    ['holograms','Голографические дисплеи',2040,'horizon','speculativeHorizon',2,'relatedTo',null,
+      'Minority Report (2002) → VR-гарнитуры, но без голограмм в воздухе',
+      'BGR, Minority Report', 'Meta, Apple'],
+    ['personalized_ads','Персонализированная реклама',2005,'horizon','existingResearch',3,'relatedTo',null,
+      'Minority Report (2002) → таргетированная реклама в интернете',
+      'BGR, Spielberg interview', 'Google, Яндекс'],
+    ['hoverboard','Ховерборд',2014,'horizon','existingResearch',1,'relatedTo',null,
+      'Back to the Future II (1989) → Hendo Hoverboard, Lexus Slide',
+      'BGR', 'Hendo, Lexus'],
+    ['self_lacing','Самошнурующиеся кроссовки',2016,'horizon','existingResearch',1,'relatedTo',null,
+      'Back to the Future II (1989) → Nike MAG, HyperAdapt 1.0',
+      'BGR', 'Nike'],
+    ['video_calls','Видеозвонки',2003,'horizon','existingResearch',3,'relatedTo',null,
+      'Star Trek (1966) → Skype (2003), Zoom (2013), FaceTime',
+      'Yahoo Tech', 'Skype, Zoom, Apple'],
+
+    /* SCI-FI */
+    ['sci_fi_rivermind','Зависимость от критической подписки',2040,'scifi','scienceFiction',3,'riskScenario',null,
+      'Стресс-сценарий Black Mirror S7E1 «Common People»: тарифы и отключение критически важной функции',
+      'Black Mirror S7E1', 'Netflix / сатира'],
+    ['sci_fi_uss','Права цифровых копий',2040,'scifi','scienceFiction',2,'riskScenario',null,
+      'Стресс-сценарий «USS Callister»: кто владеет цифровым аватаром и вправе его удалить',
+      'Black Mirror S4E1', 'Netflix / сатира'],
+    ['sci_fi_san','Цифровая память и аватары',2040,'scifi','scienceFiction',1,'analogy',null,
+      'Философская гипотеза «San Junipero»: посмертные аватары и цифровая память',
+      'Black Mirror S3E4', 'Netflix / философия'],
+    ['sci_fi_history','Тотальная запись личной памяти',2040,'scifi','scienceFiction',2,'riskScenario',null,
+      'Стресс-сценарий «The Entire History of You»: согласие, хранение, право на удаление',
+      'Black Mirror S1E3', 'Netflix / сатира'],
+    ['sci_fi_nosedive','Репутационные баллы как инфраструктура',2040,'scifi','scienceFiction',2,'riskScenario',null,
+      'Стресс-сценарий «Nosedive»: рейтинги и доступ к сервисам',
+      'Black Mirror S3E1', 'Netflix / сатира'],
+    ['sci_fi_plaything','Права виртуальных разумов',2040,'scifi','scienceFiction',2,'riskScenario',null,
+      'Стресс-сценарий «Plaything» S7: если виртуальный разум страдает — этично ли его удалять?',
+      'Black Mirror S7E3', 'Netflix / сатира'],
+    ['sci_fi_metalhead','Автономные боевые роботы',2040,'scifi','scienceFiction',2,'riskScenario',null,
+      'Стресс-сценарий «Metalhead» S4E5: что если автономная машина выйдет из-под контроля?',
+      'Black Mirror S4E5', 'Netflix / сатира'],
+    ['sci_fi_archangel','Восстановление умерших',2040,'scifi','scienceFiction',2,'riskScenario',null,
+      'Стресс-сценарий «Arkangel» S4E2: контроль через нейроимплант и утрата приватности',
+      'Black Mirror S4E2', 'Netflix / сатира'],
+    ['sci_fi_star_trek','Коммуникаторы и универсальные переводчики',2011,'scifi','existingResearch',3,'relatedTo',null,
+      'Star Trek (1966) → мобильные телефоны, ИИ-переводчики',
+      'Yahoo Tech', 'Gene Roddenberry / реальность'],
+    ['sci_fi_minority','Беспилотные такси и персонализация',2010,'scifi','existingResearch',3,'relatedTo',null,
+      'Minority Report (2002) → беспилотные авто, таргетированная реклама',
+      'BGR', 'Steven Spielberg / реальность'],
+    ['sci_fi_back_future','Самошнурующиеся кроссовки',2016,'scifi','existingResearch',1,'relatedTo',null,
+      'Back to the Future II (1989) → Nike MAG, HyperAdapt 1.0',
+      'BGR', 'Robert Zemeckis / реальность'],
+    ['sci_fi_aliens','Экзоскелеты и автономные турели',2020,'scifi','existingResearch',2,'relatedTo',null,
+      'Aliens (1986) → экзоскелеты XoMotion, автономные турели Buria',
+      'Daily Mail', 'James Cameron / реальность'],
+    ['sci_fi_1984','Большой брат и слежка',2025,'scifi','scienceFiction',2,'riskScenario',null,
+      'Стресс-сценарий: тотальная слежка через экосистему сервисов',
+      '1984 / Orwell', 'Джордж Оруэлл'],
+    ['sci_fi_matrix','Симуляция и цифровые миры',2040,'scifi','scienceFiction',2,'riskScenario',null,
+      'Стресс-сценарий: если цифровая реальность заменит физическую',
+      'The Matrix', 'Вачовски'],
+    ['sci_fi_her','ИИ-компаньон и любовь',2030,'scifi','scienceFiction',2,'riskScenario',null,
+      'Стресс-сценарий: эмоциональная зависимость от ИИ-ассистента',
+      'Her', 'Спайк Джонз'],
+    ['sci_fi_exmachina','ИИ и тест Тьюринга',2030,'scifi','scienceFiction',2,'riskScenario',null,
+      'Стресс-сценарий: можно ли отличить ИИ от человека?',
+      'Ex Machina', 'Алекс Гарленд']
+  ];
+
+  /* ============ РОДСТВЕННЫЕ СВЯЗИ ============ */
+  const RELATED = [
+    ['toloka','crowd','Краудсорсинг'],
+    ['toloka','tasks','Преемственность РФ'],
+    ['crowd','tasks','Крауд-платформы'],
+    ['music','plus','Подписка'],
+    ['kinopoisk','plus','Подписка'],
+    ['afisha','plus','Подписка'],
+    ['eda','lavka','Доставка'],
+    ['eda','delivery','Доставка'],
+    ['cloud','y360','B2B'],
+    ['alice','gpt','ИИ-ассистент'],
+    ['matrixnet','gpt','Машинное обучение'],
+    ['maps','taxi','Геоданные'],
+    ['maps','eda','Логистика'],
+    ['market','plus','Кешбэк'],
+    ['pay','plus','Платежи'],
+    ['weather','meteum','Прогноз'],
+    ['trans_alice','ycp','Транзакции'],
+    ['robot','rms','Роботы'],
+    ['robotaxi','rms','Роботы'],
+    ['b2b','aistudio','B2B+ИИ'],
+    ['plus','rev_3t','Выручка'],
+    ['gpt5','b2b_25','ИИ в выручке'],
+    ['aliceai','sci_fi_her','Стресс-сценарий'],
+    ['alice','sci_fi_her','Прототип ИИ-компаньона'],
+    ['cloud','sci_fi_rivermind','Зависимость от облака'],
+    ['plus','sci_fi_rivermind','Подписка как критическая функция']
+  ];
+
+  /* ============ ГЕОМЕТРИЯ ============ */
+  const W = 5800, H = 5800, CX = W/2, CY = H/2;
+  const rad = d => d * Math.PI / 180;
+  const yearR = y => {
+    if (y <= 2026) return 130 + (y - 1997) * 42;
+    if (y <= 2035) return 130 + 29 * 42 + (y - 2026) * 55;
+    return 130 + 29 * 42 + 9 * 55 + (y - 2035) * 75;
+  };
+
+  const ALL_NODES = [];
+  const groups = {};
+  RAW.forEach(n => {
+    const k = n[3] + '_' + n[2];
+    (groups[k] = groups[k] || []).push(n);
+  });
+
+  const nodes = {};
+
+  RAW.forEach(n => {
+    const id = n[0], name = n[1], year = n[2], cat = n[3], status = n[4], imp = n[5], parent = n[6], extra = n[7], source = n[8];
+    if (!CATS[cat]) return;
+    const grp = groups[cat + '_' + year];
+    const idx = grp.indexOf(n), cnt = grp.length;
+    const baseA = CATS[cat].a;
+    const spread = cnt > 1 ? 11 : 0;
+    const offset = cnt > 1 ? (idx - (cnt-1)/2) * spread : 0;
+    const hash = id.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+    const angle = baseA + offset + (hash % 9) - 4;
+    const r = yearR(year) + (hash % 13) - 6;
+    nodes[id] = {
+      id, name, year, cat, status, imp, parent, extra, source, owner: null,
+      relation: 'parent',
+      x: CX + r * Math.cos(rad(angle)),
+      y: CY + r * Math.sin(rad(angle)),
+      a: angle, r
+    };
+    ALL_NODES.push(id);
+  });
+
+  const horizonGroups = {};
+  HORIZON.forEach(h => {
+    const k = h[3] + '_' + h[2];
+    (horizonGroups[k] = horizonGroups[k] || []).push(h);
+  });
+
+  HORIZON.forEach(h => {
+    const id = h[0], name = h[1], year = h[2], cat = h[3], status = h[4], imp = h[5], relation = h[6], parent = h[7], extra = h[8], source = h[9], owner = h[10];
+    if (!CATS[cat]) return;
+    const grp = horizonGroups[cat + '_' + year];
+    const idx = grp.indexOf(h), cnt = grp.length;
+    const baseA = CATS[cat].a;
+    const spread = cnt > 1 ? 9 : 0;
+    const offset = cnt > 1 ? (idx - (cnt-1)/2) * spread : 0;
+    const hash = id.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+    const angle = baseA + offset + (hash % 7) - 3;
+    const r = yearR(year) + 35 + (hash % 15);
+    nodes[id] = {
+      id, name, year, cat, status, imp, parent, extra, source, owner,
+      relation: relation || 'relatedTo',
+      x: CX + r * Math.cos(rad(angle)),
+      y: CY + r * Math.sin(rad(angle)),
+      a: angle, r
+    };
+    ALL_NODES.push(id);
+  });
+
+  const childrenOf = {};
+  ALL_NODES.forEach(id => {
+    const n = nodes[id];
+    if (n && n.parent && nodes[n.parent]) {
+      (childrenOf[n.parent] = childrenOf[n.parent] || []).push(id);
+    }
+  });
+
+  /* ============ SVG ============ */
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('svg');
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+  const el = (tag, attrs) => {
+    const e = document.createElementNS(NS, tag);
+    if (attrs) {
+      for (const k in attrs) {
+        if (attrs[k] !== null && attrs[k] !== undefined) e.setAttribute(k, attrs[k]);
+      }
+    }
+    return e;
+  };
+
+  const defs = el('defs');
+  defs.innerHTML = `
+    <filter id="g1" x="-200%" y="-200%" width="500%" height="500%">
+      <feGaussianBlur stdDeviation="2.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="g2" x="-200%" y="-200%" width="500%" height="500%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="g3" x="-300%" y="-300%" width="700%" height="700%">
+      <feGaussianBlur stdDeviation="13" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <radialGradient id="core">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="35%" stop-color="#ffb700"/>
+      <stop offset="70%" stop-color="#ff2a6d" stop-opacity=".55"/>
+      <stop offset="100%" stop-color="#ff2a6d" stop-opacity="0"/>
+    </radialGradient>
+  `;
+  svg.appendChild(defs);
+
+  const gRings = el('g', {class:'rings'});
+  const gSect = el('g', {class:'sectors'});
+  const gRelated = el('g', {class:'related'});
+  const gLinks = el('g', {class:'links'});
+  const gNodes = el('g', {class:'nodes'});
+  svg.appendChild(gRings);
+  svg.appendChild(gSect);
+  svg.appendChild(gRelated);
+  svg.appendChild(gLinks);
+  svg.appendChild(gNodes);
+
+  [1997, 2001, 2005, 2009, 2013, 2017, 2021, 2025, 2027, 2030, 2035, 2040, 2045, 2050].forEach(y => {
+    const isFuture = y > 2026;
+    gRings.appendChild(el('circle', {
+      cx:CX, cy:CY, r: yearR(y), fill:'none',
+      stroke: isFuture ? '#2a2a4a' : '#1a2a4a',
+      'stroke-width':1,
+      'stroke-dasharray': isFuture ? '3 8' : '2 9',
+      opacity: isFuture ? .35 : .55
+    }));
+    const t = el('text', {
+      x:CX, y:CY - yearR(y) - 8,
+      fill: isFuture ? '#445577' : '#334466',
+      'font-size': isFuture ? 12 : 11,
+      'text-anchor':'middle',
+      'font-family':'monospace',
+      'letter-spacing':3,
+      'font-weight': isFuture ? 700 : 400
+    });
+    t.textContent = y;
+    gRings.appendChild(t);
+  });
+
+  Object.keys(CATS).forEach(k => {
+    const c = CATS[k];
+    const outer = yearR(2050) + 100;
+    gSect.appendChild(el('line', {
+      x1:CX, y1:CY,
+      x2:CX + outer * Math.cos(rad(c.a)),
+      y2:CY + outer * Math.sin(rad(c.a)),
+      stroke:'#0d1424', 'stroke-width':1, opacity:.7
+    }));
+    const lr = yearR(2050) + 160;
+    const t = el('text', {
+      x:CX + lr * Math.cos(rad(c.a)),
+      y:CY + lr * Math.sin(rad(c.a)),
+      fill:c.c, 'font-size':14, 'text-anchor':'middle',
+      'font-family':'monospace', 'letter-spacing':4,
+      opacity:.75, 'font-weight':700
+    });
+    t.textContent = c.l;
+    gSect.appendChild(t);
+  });
+
+  const relatedEls = [];
+  RELATED.forEach(([a, b]) => {
+    const n1 = nodes[a], n2 = nodes[b];
+    if (!n1 || !n2) return;
+    const line = el('line', {
+      x1:n1.x, y1:n1.y, x2:n2.x, y2:n2.y,
+      stroke:'#8899bb', 'stroke-width':1, opacity:.10,
+      'stroke-dasharray':'4 4', class:'link-related'
+    });
+    line.dataset.from = a;
+    line.dataset.to = b;
+    line.dataset.related = '1';
+    gRelated.appendChild(line);
+    relatedEls.push(line);
+  });
+
+  const linkEls = [];
+  ALL_NODES.forEach(id => {
+    const c = nodes[id];
+    if (!c || !c.parent) return;
+    const p = nodes[c.parent];
+    if (!p) return;
+    const isFuture = FUTURE_STATUSES.indexOf(c.status) !== -1;
+    const isHorizon = c.cat === 'horizon';
+    const isScifi = c.cat === 'scifi';
+    const st = ST[c.status] || ST.work;
+    const line = el('line', {
+      x1:p.x, y1:p.y, x2:c.x, y2:c.y,
+      stroke: st.c,
+      'stroke-width': isScifi ? 1.2 : isHorizon ? 1.2 : 1,
+      opacity: isFuture ? .22 : .16,
+      'stroke-dasharray': isScifi ? '2 6' : isHorizon ? '2 5' : isFuture ? '3 4' : 'none'
+    });
+    line.dataset.from = c.parent;
+    line.dataset.to = id;
+    gLinks.appendChild(line);
+    linkEls.push(line);
+  });
+
+  gNodes.appendChild(el('circle', {cx:CX, cy:CY, r:70, fill:'url(#core)', filter:'url(#g3)', opacity:.95}));
+  const coreT = el('text', {
+    x:CX, y:CY+6, fill:'#fff', 'font-size':16, 'text-anchor':'middle',
+    'font-weight':900, 'letter-spacing':5, filter:'url(#g2)',
+    'font-family':'Inter, sans-serif'
+  });
+  coreT.textContent = 'ЯНДЕКС';
+  gNodes.appendChild(coreT);
+
+  const nodeEls = [];
+  ALL_NODES.forEach(id => {
+    const nd = nodes[id];
+    if (!nd) return;
+    const cat = CATS[nd.cat];
+    const st = ST[nd.status] || ST.work;
+    const baseR = 3.5 + nd.imp * 3.5;
+    const filt = nd.imp === 3 ? 'url(#g3)' : nd.imp === 2 ? 'url(#g2)' : 'url(#g1)';
+    const isFuture = FUTURE_STATUSES.indexOf(nd.status) !== -1;
+    const isSpec = nd.status === 'speculation' || nd.status === 'speculativeHorizon';
+    const isScifi = nd.cat === 'scifi';
+    const isHorizon = nd.cat === 'horizon';
+
+    const g = el('g', {class:'node', 'data-id': nd.id, 'data-cat': nd.cat, 'data-status': nd.status});
+    g.appendChild(el('circle', {
+      cx: nd.x, cy: nd.y, r: baseR * 2.4,
+      fill: cat.c,
+      opacity: isSpec || isScifi ? .04 : isFuture ? .08 : .12,
+      filter:'url(#g3)'
+    }));
+
+    if (isScifi) {
+      const s = baseR * 1.5;
+      const points = `${nd.x},${nd.y-s} ${nd.x+s},${nd.y} ${nd.x},${nd.y+s} ${nd.x-s},${nd.y}`;
+      g.appendChild(el('polygon', {
+        points: points,
+        fill: isFuture ? 'none' : st.c,
+        stroke: '#ff66cc',
+        'stroke-width': nd.imp === 3 ? 2.5 : 1.5,
+        'stroke-dasharray': '3 3',
+        filter: 'url(#g2)',
+        opacity: isSpec ? .75 : 1
+      }));
+    } else if (isHorizon) {
+      const s = baseR * 1.5;
+      g.appendChild(el('rect', {
+        x: nd.x - s, y: nd.y - s,
+        width: s * 2, height: s * 2,
+        fill: isFuture ? 'none' : st.c,
+        stroke: isSpec ? '#776699' : cat.c,
+        'stroke-width': nd.imp === 3 ? 2.5 : 1.5,
+        'stroke-dasharray': isSpec ? '2 4' : '5 3',
+        filter: 'url(#g2)',
+        opacity: isSpec ? .75 : 1
+      }));
+    } else {
+      g.appendChild(el('circle', {
+        cx: nd.x, cy: nd.y, r: baseR,
+        fill: isFuture ? 'none' : st.c,
+        stroke: isSpec ? '#666' : cat.c,
+        'stroke-width': nd.imp === 3 ? 2.5 : 1.5,
+        'stroke-dasharray': isFuture ? (isSpec ? '2 4' : '5 3') : 'none',
+        filter: isFuture ? 'url(#g2)' : filt,
+        opacity: isSpec ? .7 : 1
+      }));
+      if (nd.imp === 3 && !isFuture) {
+        g.appendChild(el('circle', {cx: nd.x, cy: nd.y, r: 2.2, fill:'#fff', opacity:.95}));
+      }
+    }
+
+    const labelR = baseR + 10;
+    const cosA = (nd.x - CX) / nd.r;
+    const lx = nd.x + cosA * labelR;
+    const ly = nd.y + ((nd.y - CY) / nd.r) * labelR;
+    const anchor = cosA > 0.15 ? 'start' : cosA < -0.15 ? 'end' : 'middle';
+
+    const t = el('text', {
+      x: lx, y: ly + 3,
+      fill: isScifi ? '#ff99dd' : isSpec ? '#776699' : isFuture ? '#8899bb' : '#cdd5e0',
+      'font-size': nd.imp === 3 ? 13 : nd.imp === 2 ? 11 : 9.5,
+      'font-weight': nd.imp === 3 ? 700 : nd.imp === 2 ? 600 : 400,
+      'text-anchor': anchor,
+      'font-family':'Inter, sans-serif',
+      opacity: isSpec || isScifi ? .7 : nd.imp === 1 ? .6 : .95,
+      'pointer-events':'none'
+    });
+    t.textContent = nd.name;
+    g.appendChild(t);
+
+    gNodes.appendChild(g);
+    nodeEls.push(g);
+  });
+
+  const bg = document.getElementById('bg');
+  const bgFragment = document.createDocumentFragment();
+  for (let i = 0; i < 600; i++) {
+    const s = document.createElement('div');
+    s.className = 'bgstar';
+    const sz = Math.random() * 1.8 + 0.4;
+    s.style.width = sz + 'px';
+    s.style.height = sz + 'px';
+    s.style.left = (Math.random() * 100) + '%';
+    s.style.top = (Math.random() * 100) + '%';
+    s.style.animationDelay = (Math.random() * 4) + 's';
+    s.style.animationDuration = (2 + Math.random() * 5) + 's';
+    bgFragment.appendChild(s);
+  }
+  bg.appendChild(bgFragment);
+
+  /* ============ ZOOM / PAN ============ */
+  let tx = 0, ty = 0, scale = 1;
+  const wrap = document.getElementById('wrap');
+
+  function applyTransform() {
+    const cw = window.innerWidth, ch = window.innerHeight;
+    const fit = Math.min(cw / W, ch / H);
+    const s = fit * scale;
+    svg.style.transform = `translate(${cw/2 + tx}px, ${ch/2 + ty}px) scale(${s}) translate(${-W/2}px, ${-H/2}px)`;
+  }
+  applyTransform();
+  window.addEventListener('resize', applyTransform);
+
+  let dragging = false, dragMoved = false;
+  let sx = 0, sy = 0, stx = 0, sty = 0;
+
+  wrap.addEventListener('mousedown', e => {
+    if (e.target.closest('.node')) return;
+    dragging = true;
+    dragMoved = false;
+    sx = e.clientX;
+    sy = e.clientY;
+    stx = tx;
+    sty = ty;
+    wrap.classList.add('drag');
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    if (Math.abs(e.clientX - sx) > 3 || Math.abs(e.clientY - sy) > 3) dragMoved = true;
+    tx = stx + (e.clientX - sx);
+    ty = sty + (e.clientY - sy);
+    applyTransform();
+  });
+
+  window.addEventListener('mouseup', () => {
+    dragging = false;
+    wrap.classList.remove('drag');
+  });
+
+  wrap.addEventListener('wheel', e => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.12 : 0.89;
+    scale = Math.max(0.2, Math.min(10, scale * factor));
+    applyTransform();
+  }, {passive:false});
+
+  /* ============ ФИЛЬТРАЦИЯ ПО СТАТУСАМ (подсветка) ============ */
+  const activeStatuses = new Set();
+  const activeCats = new Set();
+
+  function applyFilters() {
+    const hasStatusFilter = activeStatuses.size > 0;
+    const hasCatFilter = activeCats.size > 0;
+
+    nodeEls.forEach(n => {
+      const status = n.dataset.status;
+      const cat = n.dataset.cat;
+
+      let statusMatch = !hasStatusFilter || activeStatuses.has(status);
+      let catMatch = !hasCatFilter || activeCats.has(cat);
+      const match = statusMatch && catMatch;
+
+      if (hasStatusFilter || hasCatFilter) {
+        n.classList.toggle('filter-dimmed', !match);
+        n.classList.toggle('filter-highlight', match);
+      } else {
+        n.classList.remove('filter-dimmed', 'filter-highlight');
+      }
+    });
+
+    linkEls.forEach(l => {
+      if (hasStatusFilter || hasCatFilter) {
+        const fromN = nodes[l.dataset.from];
+        const toN = nodes[l.dataset.to];
+        if (!fromN || !toN) return;
+        const fromMatch = (!hasStatusFilter || activeStatuses.has(fromN.status)) && (!hasCatFilter || activeCats.has(fromN.cat));
+        const toMatch = (!hasStatusFilter || activeStatuses.has(toN.status)) && (!hasCatFilter || activeCats.has(toN.cat));
+        const active = fromMatch && toMatch;
+        l.classList.toggle('link-filter-dimmed', !active);
+        l.classList.toggle('link-active', active);
+      } else {
+        l.classList.remove('link-filter-dimmed', 'link-active');
+      }
+    });
+  }
+
+  /* ============ ПУТЬ ============ */
+  let selectedId = null;
+  const pathInfo = document.getElementById('pathInfo');
+
+  function getAncestors(id) {
+    const path = [];
+    let cur = id;
+    const seen = new Set();
+    while (cur && !seen.has(cur)) {
+      seen.add(cur);
+      path.unshift(cur);
+      cur = nodes[cur] ? nodes[cur].parent : null;
+    }
+    return path;
+  }
+
+  function getDescendants(id) {
+    const result = [];
+    const stack = [id];
+    const seen = new Set();
+    while (stack.length) {
+      const cur = stack.pop();
+      (childrenOf[cur] || []).forEach(c => {
+        if (!seen.has(c)) { seen.add(c); result.push(c); stack.push(c); }
+      });
+    }
+    return result;
+  }
+
+  function clearAll() {
+    nodeEls.forEach(n => {
+      n.classList.remove('search-dimmed','search-match','path-dimmed','path-active','path-descendant');
+    });
+    linkEls.forEach(l => l.classList.remove('link-dimmed','link-active'));
+    relatedEls.forEach(l => l.classList.remove('link-dimmed','link-active'));
+    pathInfo.style.display = 'none';
+    selectedId = null;
+    document.getElementById('searchInput').value = '';
+  }
+
+  function highlightPath(id) {
+    if (selectedId === id) { clearAll(); return; }
+    selectedId = id;
+
+    const ancestors = getAncestors(id);
+    const descendants = getDescendants(id);
+    const descSet = new Set(descendants);
+    const allSet = new Set(ancestors.concat(descendants));
+
+    nodeEls.forEach(n => {
+      const nid = n.dataset.id;
+      n.classList.remove('search-dimmed','search-match');
+      if (allSet.has(nid)) {
+        n.classList.remove('path-dimmed');
+        n.classList.add('path-active');
+        if (descSet.has(nid)) n.classList.add('path-descendant');
+        else n.classList.remove('path-descendant');
+      } else {
+        n.classList.add('path-dimmed');
+        n.classList.remove('path-active','path-descendant');
+      }
+    });
+
+    linkEls.forEach(l => {
+      const active = allSet.has(l.dataset.from) && allSet.has(l.dataset.to);
+      l.classList.toggle('link-active', active);
+      l.classList.toggle('link-dimmed', !active);
+    });
+
+    relatedEls.forEach(l => {
+      const active = allSet.has(l.dataset.from) || allSet.has(l.dataset.to);
+      l.classList.toggle('link-active', active);
+      l.classList.toggle('link-dimmed', !active);
+    });
+
+    const currentNode = nodes[id];
+    const st = ST[currentNode.status] || ST.work;
+    const cat = CATS[currentNode.cat];
+
+    let html = '';
+
+    if (ancestors.length > 1) {
+      html += '<h4>ПУТЬ ЭВОЛЮЦИИ</h4>';
+      ancestors.slice(0, -1).forEach(pid => {
+        const nd = nodes[pid];
+        if (!nd) return;
+        const s = ST[nd.status] || ST.work;
+        const c = CATS[nd.cat];
+        const relTag = nd.relation && nd.relation !== 'parent' ? `<span class="rel-tag">${escapeHtml(nd.relation)}</span>` : '';
+        const dotClass = nd.cat === 'scifi' ? 'dot-di' : nd.cat === 'horizon' ? 'dot-sq' : 'dot';
+        html += `<div class="step"><span class="${dotClass}" style="background:${s.c};box-shadow:0 0 8px ${s.c}"></span><span class="year">${nd.year}</span><span style="color:${c.c}">${escapeHtml(nd.name)}</span>${relTag}</div>`;
+      });
+    }
+
+    html += `<h4>ВЫБРАНО</h4>`;
+    const dotClass = currentNode.cat === 'scifi' ? 'dot-di' : currentNode.cat === 'horizon' ? 'dot-sq' : 'dot';
+    html += `<div class="step current"><span class="${dotClass}" style="background:${st.c};box-shadow:0 0 8px ${st.c}"></span><span class="year">${currentNode.year}</span><span style="color:${cat.c}">${escapeHtml(currentNode.name)}</span></div>`;
+    if (currentNode.owner) {
+      html += `<div class="step" style="color:#8899bb;font-size:11px;padding-left:18px">Источник: ${escapeHtml(currentNode.owner)}</div>`;
+    }
+
+    const realDesc = descendants.filter(d => FUTURE_STATUSES.indexOf(nodes[d].status) === -1);
+    const futureDesc = descendants.filter(d => FUTURE_STATUSES.indexOf(nodes[d].status) !== -1);
+
+    if (realDesc.length > 0) {
+      html += `<h4>ПУТЬ РАЗВИТИЯ · ${realDesc.length}</h4>`;
+      realDesc.slice().sort((a, b) => nodes[a].year - nodes[b].year).forEach(pid => {
+        const nd = nodes[pid];
+        if (!nd) return;
+        const s = ST[nd.status] || ST.work;
+        const c = CATS[nd.cat];
+        const depth = getAncestors(pid).length - 1;
+        const indent = Math.min(depth, 6) * 10;
+        html += `<div class="step" style="padding-left:${indent}px"><span class="dot" style="background:${s.c};box-shadow:0 0 8px ${s.c}"></span><span class="year">${nd.year}</span><span style="color:${c.c}">${escapeHtml(nd.name)}</span></div>`;
+      });
+    }
+
+    if (futureDesc.length > 0) {
+      html += `<h4>ГОРИЗОНТ · ${futureDesc.length}</h4>`;
+      futureDesc.slice().sort((a, b) => nodes[a].year - nodes[b].year).forEach(pid => {
+        const nd = nodes[pid];
+        if (!nd) return;
+        const s = ST[nd.status] || ST.work;
+        const c = CATS[nd.cat];
+        const depth = getAncestors(pid).length - 1;
+        const indent = Math.min(depth, 6) * 10;
+        const dc = nd.cat === 'scifi' ? 'dot-di' : nd.cat === 'horizon' ? 'dot-sq' : 'dot';
+        html += `<div class="step" style="padding-left:${indent}px"><span class="${dc}" style="background:${s.c};box-shadow:0 0 8px ${s.c}"></span><span class="year">${nd.year}</span><span style="color:${c.c}">${escapeHtml(nd.name)}</span></div>`;
+      });
+    }
+
+    if (descendants.length === 0) {
+      html += `<h4>ПУТЬ РАЗВИТИЯ</h4><div class="step" style="color:#445;font-size:11px">Нет подтверждённых потомков</div>`;
+    }
+
+    const relatedTo = [];
+    RELATED.forEach(([a, b, label]) => {
+      if (a === id || b === id) relatedTo.push([a === id ? b : a, label]);
+    });
+
+    if (relatedTo.length > 0) {
+      html += `<h4>СВЯЗАННЫЕ СЕРВИСЫ</h4>`;
+      relatedTo.forEach(([oid, label]) => {
+        const nd = nodes[oid];
+        if (!nd) return;
+        const s = ST[nd.status] || ST.work;
+        const c = CATS[nd.cat];
+        html += `<div class="step"><span class="dot" style="background:${s.c};box-shadow:0 0 8px ${s.c}"></span><span class="year">${nd.year}</span><span style="color:${c.c}">${escapeHtml(nd.name)}</span><span class="rel-tag">${escapeHtml(label)}</span></div>`;
+      });
+    }
+
+    pathInfo.innerHTML = html;
+    pathInfo.style.display = 'block';
+  }
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  gNodes.addEventListener('click', e => {
+    const g = e.target.closest('.node');
+    if (!g) return;
+    e.stopPropagation();
+    highlightPath(g.dataset.id);
+  });
+
+  wrap.addEventListener('click', e => {
+    if (dragMoved) { dragMoved = false; return; }
+    if (!e.target.closest('.node')) clearAll();
+  });
+
+  /* ============ ПОИСК ============ */
+  const searchInput = document.getElementById('searchInput');
+  const clearBtn = document.getElementById('clearBtn');
+
+  function filterNodes(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      nodeEls.forEach(n => {
+        n.classList.remove('search-dimmed','search-match','path-dimmed','path-active','path-descendant');
+      });
+      linkEls.forEach(l => l.classList.remove('link-dimmed','link-active'));
+      relatedEls.forEach(l => l.classList.remove('link-dimmed','link-active'));
+      pathInfo.style.display = 'none';
+      selectedId = null;
+      return;
+    }
+    nodeEls.forEach(n => {
+      const nd = nodes[n.dataset.id];
+      if (!nd) return;
+      const match = nd.name.toLowerCase().indexOf(q) !== -1 ||
+                    (nd.extra && nd.extra.toLowerCase().indexOf(q) !== -1) ||
+                    (nd.source && nd.source.toLowerCase().indexOf(q) !== -1) ||
+                    (nd.owner && nd.owner.toLowerCase().indexOf(q) !== -1) ||
+                    String(nd.year).indexOf(q) !== -1;
+      n.classList.toggle('search-dimmed', !match);
+      n.classList.toggle('search-match', match);
+      n.classList.remove('path-dimmed','path-active','path-descendant');
+    });
+    linkEls.forEach(l => l.classList.remove('link-active','link-dimmed'));
+    relatedEls.forEach(l => l.classList.remove('link-active','link-dimmed'));
+    pathInfo.style.display = 'none';
+    selectedId = null;
+  }
+
+  searchInput.addEventListener('input', e => filterNodes(e.target.value));
+  clearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    clearAll();
+    searchInput.focus();
+  });
+
+  /* ============ TOOLTIP ============ */
+  const tip = document.getElementById('tip');
+
+  gNodes.addEventListener('mouseover', e => {
+    const g = e.target.closest('.node');
+    if (!g) return;
+    const nd = nodes[g.dataset.id];
+    if (!nd) return;
+    const st = ST[nd.status] || ST.work;
+    const cat = CATS[nd.cat];
+
+    tip.textContent = '';
+    const b = document.createElement('b');
+    b.textContent = nd.name;
+    tip.appendChild(b);
+
+    const m1 = document.createElement('div');
+    m1.className = 'meta';
+    m1.textContent = nd.year + ' · ' + cat.l;
+    tip.appendChild(m1);
+
+    if (nd.extra) {
+      const m2 = document.createElement('div');
+      m2.className = 'meta';
+      m2.style.marginTop = '6px';
+      m2.style.color = '#aab';
+      m2.textContent = nd.extra;
+      tip.appendChild(m2);
+    }
+
+    if (nd.owner) {
+      const mo = document.createElement('div');
+      mo.className = 'owner';
+      mo.textContent = 'Источник: ' + nd.owner;
+      tip.appendChild(mo);
+    }
+
+    if (nd.source) {
+      const m3 = document.createElement('div');
+      m3.className = 'src';
+      m3.textContent = 'Ссылка: ' + nd.source;
+      tip.appendChild(m3);
+    }
+
+    const s = document.createElement('span');
+    s.className = 'st';
+    s.style.cssText = `background:${st.c}22;color:${st.c};border:1px solid ${st.c}66`;
+    s.textContent = st.l;
+    tip.appendChild(s);
+
+    tip.style.display = 'block';
+  });
+
+  gNodes.addEventListener('mousemove', e => {
+    const g = e.target.closest('.node');
+    if (!g) { tip.style.display = 'none'; return; }
+    tip.style.left = Math.min(e.clientX + 16, window.innerWidth - 400) + 'px';
+    tip.style.top = Math.min(e.clientY + 16, window.innerHeight - 260) + 'px';
+  });
+
+  gNodes.addEventListener('mouseout', () => { tip.style.display = 'none'; });
+
+  /* ============ ЛЕГЕНДА-ФИЛЬТР ПО СТАТУСАМ ============ */
+  const legend = document.getElementById('legend');
+
+  function countByStatus() {
+    const counts = {};
+    ALL_NODES.forEach(id => {
+      const nd = nodes[id];
+      if (!nd) return;
+      counts[nd.status] = (counts[nd.status] || 0) + 1;
+    });
+    return counts;
+  }
+
+  function countByCat() {
+    const counts = {};
+    ALL_NODES.forEach(id => {
+      const nd = nodes[id];
+      if (!nd) return;
+      counts[nd.cat] = (counts[nd.cat] || 0) + 1;
+    });
+    return counts;
+  }
+
+  function renderLegend() {
+    const statusCounts = countByStatus();
+    let html = '';
+
+    Object.keys(LAYERS).forEach(layerKey => {
+      const layer = LAYERS[layerKey];
+      html += `<h3>${layer.l}</h3>`;
+      layer.statuses.forEach(statusKey => {
+        const v = ST[statusKey];
+        if (!v) return;
+        const cnt = statusCounts[statusKey] || 0;
+        const active = activeStatuses.has(statusKey) ? ' active' : '';
+        const dotClass = (layerKey === 'horizon') ? 'd-sq'
+                       : (layerKey === 'scifi') ? 'd-di'
+                       : (layerKey === 'forecast') ? 'd-dash'
+                       : '';
+        html += `<div class="item${active}" data-status="${statusKey}">
+          <span class="d ${dotClass}" style="background:${v.c};color:${v.c};box-shadow:0 0 8px ${v.c}"></span>
+          <span>${v.l}</span>
+          <span class="cnt">${cnt}</span>
+        </div>`;
+      });
+    });
+
+    html += `<div class="reset" id="resetStatuses">✕ СБРОСИТЬ ФИЛЬТРЫ СТАТУСА</div>`;
+    legend.innerHTML = html;
+
+    legend.querySelectorAll('.item').forEach(item => {
+      item.addEventListener('click', e => {
+        e.stopPropagation();
+        const statusKey = item.dataset.status;
+        if (activeStatuses.has(statusKey)) activeStatuses.delete(statusKey);
+        else activeStatuses.add(statusKey);
+        applyFilters();
+        renderLegend();
+        updateStats();
+      });
+    });
+
+    const resetBtn = document.getElementById('resetStatuses');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        activeStatuses.clear();
+        applyFilters();
+        renderLegend();
+        updateStats();
+      });
+    }
+  }
+
+  /* ============ ФИЛЬТР ПО КАТЕГОРИЯМ ============ */
+  const catFilters = document.getElementById('catFilters');
+
+  function renderCatFilters() {
+    const catCounts = countByCat();
+    let html = '<h3>КАТЕГОРИИ</h3>';
+
+    Object.keys(CATS).forEach(catKey => {
+      const c = CATS[catKey];
+      const cnt = catCounts[catKey] || 0;
+      if (cnt === 0) return;
+      const active = activeCats.has(catKey) ? ' active' : '';
+      html += `<div class="item${active}" data-cat="${catKey}">
+        <span class="d" style="background:${c.c};color:${c.c};box-shadow:0 0 8px ${c.c}"></span>
+        <span>${c.l}</span>
+        <span class="cnt">${cnt}</span>
+      </div>`;
+    });
+
+    html += `<div class="reset" id="resetCats">✕ СБРОСИТЬ ФИЛЬТРЫ КАТЕГОРИЙ</div>`;
+    catFilters.innerHTML = html;
+
+    catFilters.querySelectorAll('.item').forEach(item => {
+      item.addEventListener('click', e => {
+        e.stopPropagation();
+        const catKey = item.dataset.cat;
+        if (activeCats.has(catKey)) activeCats.delete(catKey);
+        else activeCats.add(catKey);
+        applyFilters();
+        renderCatFilters();
+        updateStats();
+      });
+    });
+
+    const resetBtn = document.getElementById('resetCats');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        activeCats.clear();
+        applyFilters();
+        renderCatFilters();
+        updateStats();
+      });
+    }
+  }
+
+  /* ============ СТАТИСТИКА СВЕРХУ ============ */
+  const stats = document.getElementById('stats');
+
+  function updateStats() {
+    const statusCounts = countByStatus();
+    const total = ALL_NODES.length;
+    let visible = 0;
+    ALL_NODES.forEach(id => {
+      const nd = nodes[id];
+      if (!nd) return;
+      const statusMatch = activeStatuses.size === 0 || activeStatuses.has(nd.status);
+      const catMatch = activeCats.size === 0 || activeCats.has(nd.cat);
+      if (statusMatch && catMatch) visible++;
+    });
+
+    const statusFilterActive = activeStatuses.size > 0;
+    const catFilterActive = activeCats.size > 0;
+
+    let html = `<div class="stat${statusFilterActive || catFilterActive ? ' active-stat' : ''}"><span>ПОКАЗАНО:</span><b>${visible}</b></div>`;
+    html += `<div class="stat"><span>ВСЕГО:</span><b>${total}</b></div>`;
+
+    if (activeStatuses.size > 0) {
+      const parts = [];
+      activeStatuses.forEach(s => {
+        if (ST[s]) parts.push(`<span style="color:${ST[s].c}">${ST[s].l}</span>`);
+      });
+      html += `<div class="stat"><span>СТАТУС:</span>${parts.join(' + ')}</div>`;
+    }
+    if (activeCats.size > 0) {
+      const parts = [];
+      activeCats.forEach(c => {
+        if (CATS[c]) parts.push(`<span style="color:${CATS[c].c}">${CATS[c].l}</span>`);
+      });
+      html += `<div class="stat"><span>КАТЕГОРИЯ:</span>${parts.join(' + ')}</div>`;
+    }
+
+    stats.innerHTML = html;
+  }
+
+  /* ============ ИНИЦИАЛИЗАЦИЯ ============ */
+  renderLegend();
+  renderCatFilters();
+  updateStats();
+
+  console.log('Яндекс Звёздная карта v9.0 загружена.');
+  console.log('Продуктов:', RAW.length);
+  console.log('Горизонт + SCI-FI:', HORIZON.length);
+  console.log('Всего узлов:', ALL_NODES.length);
+
+})();
+</script>
+</body>
+</html>
